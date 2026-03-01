@@ -423,10 +423,101 @@
 
 <button class="fab" id="addBtn">＋</button>
 
+<!-- PERMANENT ADD FORM — inputs always in DOM so iOS keyboard works -->
+<div class="modal-overlay" id="addFormOverlay" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Add Contact</div>
+    <div class="form-group">
+      <label class="form-label">Name *</label>
+      <input class="form-input" id="fi-name" type="text" inputmode="text" placeholder="Full name"
+        autocomplete="name" autocorrect="off" autocapitalize="words" spellcheck="false" />
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Phone</label>
+        <input class="form-input" id="fi-phone" type="tel" inputmode="tel" placeholder="+1 555 000" autocomplete="tel" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Meet by *</label>
+        <input class="form-input" id="fi-date" type="date" />
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">LinkedIn URL</label>
+      <input class="form-input" id="fi-li" type="url" inputmode="url" placeholder="https://linkedin.com/in/..."
+        autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" />
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="document.getElementById('addFormOverlay').style.display='none'">Cancel</button>
+      <button class="btn-save" onclick="saveContact()">Save Contact</button>
+    </div>
+  </div>
+</div>
+
+<!-- PERMANENT EDIT FORM — inputs always in DOM so iOS keyboard works -->
+<div class="modal-overlay" id="editFormOverlay" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Edit Contact</div>
+    <input type="hidden" id="ei-id" />
+    <div class="form-group">
+      <label class="form-label">Name *</label>
+      <input class="form-input" id="ei-name" type="text" inputmode="text" placeholder="Full name"
+        autocomplete="name" autocorrect="off" autocapitalize="words" spellcheck="false" />
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Phone</label>
+        <input class="form-input" id="ei-phone" type="tel" inputmode="tel" placeholder="+1 555 000" autocomplete="tel" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Meet by *</label>
+        <input class="form-input" id="ei-date" type="date" />
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">LinkedIn URL</label>
+      <input class="form-input" id="ei-li" type="url" inputmode="url" placeholder="https://linkedin.com/in/..."
+        autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" />
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="document.getElementById('editFormOverlay').style.display='none'">Cancel</button>
+      <button class="btn-save" onclick="updateContact()">Update</button>
+    </div>
+    <button class="btn-delete" style="background:rgba(6,214,160,0.08);border-color:rgba(6,214,160,0.2);color:var(--teal);margin-top:10px;"
+      onclick="const id=document.getElementById('ei-id').value;markMet(id);document.getElementById('editFormOverlay').style.display='none';">✓ Mark as Met</button>
+    <button class="btn-delete" onclick="deleteContact()">🗑 Remove Contact</button>
+  </div>
+</div>
+
+<!-- DYNAMIC MODAL for met-contact view only (no inputs needed) -->
 <div class="modal-overlay" id="modalOverlay" style="display:none" onclick="handleOverlayClick(event)">
   <div class="modal" id="modalBox">
     <div class="modal-handle"></div>
     <div id="modalInner"></div>
+  </div>
+</div>
+
+<!-- PERMANENT RESCHEDULE FORM -->
+<div class="modal-overlay" id="rsFormOverlay" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Reschedule</div>
+    <input type="hidden" id="rs-id" />
+    <div class="form-group">
+      <label class="form-label">New Meet-by Date *</label>
+      <input class="form-input" id="rs-date" type="date" />
+    </div>
+    <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap;">
+      <button onclick="shiftDays('rs-date',7)"  style="flex:1;padding:8px 4px;background:rgba(181,123,255,0.1);border:1px solid rgba(181,123,255,0.2);border-radius:10px;color:var(--violet);font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">+1 week</button>
+      <button onclick="shiftDays('rs-date',14)" style="flex:1;padding:8px 4px;background:rgba(181,123,255,0.1);border:1px solid rgba(181,123,255,0.2);border-radius:10px;color:var(--violet);font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">+2 weeks</button>
+      <button onclick="shiftDays('rs-date',30)" style="flex:1;padding:8px 4px;background:rgba(181,123,255,0.1);border:1px solid rgba(181,123,255,0.2);border-radius:10px;color:var(--violet);font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">+1 month</button>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="document.getElementById('rsFormOverlay').style.display='none'">Cancel</button>
+      <button class="btn-save" onclick="saveReschedule()">Reschedule</button>
+    </div>
   </div>
 </div>
 
@@ -500,26 +591,18 @@ function updateProfileChip() {
 }
 
 function openProfileEdit() {
-  openModal(`
-    <div class="modal-title">Your Profile</div>
-    <div class="form-group">
-      <label class="form-label">Your Name</label>
-      <input class="form-input" id="pn-input" type="text" inputmode="text" placeholder="e.g. Kushal"
-        autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false"
-        value="${esc(state.profileName)}" />
-    </div>
-    <div class="modal-footer">
-      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
-      <button class="btn-save" onclick="saveProfileName()">Save</button>
-    </div>
-  `);
-  setTimeout(() => document.getElementById('pn-input')?.focus(), 100);
+  // Use native prompt — guaranteed to trigger iOS keyboard in PWA standalone mode
+  const current = state.profileName || '';
+  const v = prompt('Enter your name:', current);
+  if (v === null) return; // cancelled
+  state.profileName = v.trim();
+  save(); updateProfileChip();
 }
 
 function saveProfileName() {
-  const v = document.getElementById('pn-input').value.trim();
+  const v = document.getElementById('pn-input') ? document.getElementById('pn-input').value.trim() : '';
   state.profileName = v;
-  save(); updateProfileChip(); closeModal();
+  save(); updateProfileChip();
 }
 
 // ─── STATS ────────────────────────────────────────────────────────────────────
@@ -715,24 +798,10 @@ function cancelMeeting(id) {
 function openReschedule(id) {
   const c = state.contacts.find(x=>x.id===id);
   if(!c) return;
-  openModal(`
-    <div class="modal-title">Reschedule</div>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:18px;">Moving <strong style="color:var(--text)">${esc(c.name)}</strong> to a new date</div>
-    <div class="form-group">
-      <label class="form-label">New Meet-by Date *</label>
-      <input class="form-input" id="rs-date" type="date" value="${c.dueDate}" />
-    </div>
-    <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap;">
-      <button onclick="shiftDays('rs-date',7)"  style="flex:1;padding:8px 4px;background:rgba(181,123,255,0.1);border:1px solid rgba(181,123,255,0.2);border-radius:10px;color:var(--violet);font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">+1 week</button>
-      <button onclick="shiftDays('rs-date',14)" style="flex:1;padding:8px 4px;background:rgba(181,123,255,0.1);border:1px solid rgba(181,123,255,0.2);border-radius:10px;color:var(--violet);font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">+2 weeks</button>
-      <button onclick="shiftDays('rs-date',30)" style="flex:1;padding:8px 4px;background:rgba(181,123,255,0.1);border:1px solid rgba(181,123,255,0.2);border-radius:10px;color:var(--violet);font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">+1 month</button>
-    </div>
-    <div class="modal-footer">
-      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
-      <button class="btn-save" onclick="saveReschedule('${id}')">Reschedule</button>
-    </div>
-  `);
-  document.getElementById('rs-date').min = new Date().toISOString().split('T')[0];
+  document.getElementById('rs-id').value   = id;
+  document.getElementById('rs-date').value = c.dueDate || '';
+  document.getElementById('rs-date').min   = new Date().toISOString().split('T')[0];
+  document.getElementById('rsFormOverlay').style.display = 'flex';
 }
 
 function shiftDays(inputId, days) {
@@ -744,63 +813,38 @@ function shiftDays(inputId, days) {
 }
 
 function saveReschedule(id) {
+  if(!id) id = document.getElementById('rs-id').value;
   const c = state.contacts.find(x=>x.id===id);
   if(!c) return;
   const date = document.getElementById('rs-date').value;
   if(!date) { alert('Please pick a date'); return; }
   c.dueDate = date;
-  save(); expandedId=null; closeModal(); render();
+  save(); expandedId=null;
+  document.getElementById('rsFormOverlay').style.display='none';
+  render();
 }
 
 // ─── MODAL HELPERS ────────────────────────────────────────────────────────────
 function openModal(html) {
+  const inner = document.getElementById('modalInner');
   const overlay = document.getElementById('modalOverlay');
-  document.getElementById('modalInner').innerHTML = html;
+  inner.innerHTML = html;
   overlay.style.display = 'flex';
-  // iOS PWA keyboard fix: focus first text input after DOM settles
-  setTimeout(() => {
-    const first = overlay.querySelector('input[type="text"], input[inputmode="text"], input[inputmode="url"]');
-    if (first) {
-      first.setAttribute('readonly', 'readonly');
-      first.focus();
-      setTimeout(() => { first.removeAttribute('readonly'); first.focus(); }, 50);
-    }
-  }, 150);
+  // Do NOT auto-focus — let user tap the field they want.
+  // iOS PWA will show keyboard on explicit user tap.
 }
 function closeModal() { document.getElementById('modalOverlay').style.display='none'; }
 function handleOverlayClick(e) { if(e.target===document.getElementById('modalOverlay')) closeModal(); }
 
 // ─── ADD ──────────────────────────────────────────────────────────────────────
 document.getElementById('addBtn').onclick = function() {
-  openModal(`
-    <div class="modal-title">Add Contact</div>
-    <div class="form-group">
-      <label class="form-label">Name *</label>
-      <input class="form-input" id="fi-name" type="text" inputmode="text" placeholder="Full name"
-        autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false" />
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label">Phone</label>
-        <input class="form-input" id="fi-phone" type="tel" inputmode="tel" placeholder="+1 555 000"
-          autocomplete="off" />
-      </div>
-      <div class="form-group">
-        <label class="form-label">Meet by *</label>
-        <input class="form-input" id="fi-date" type="date" />
-      </div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">LinkedIn URL</label>
-      <input class="form-input" id="fi-li" type="text" inputmode="url" placeholder="https://linkedin.com/in/..."
-        autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" />
-    </div>
-    <div class="modal-footer">
-      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
-      <button class="btn-save" onclick="saveContact()">Save Contact</button>
-    </div>
-  `);
+  // Clear fields
+  document.getElementById('fi-name').value = '';
+  document.getElementById('fi-phone').value = '';
+  document.getElementById('fi-date').value = '';
+  document.getElementById('fi-li').value = '';
   document.getElementById('fi-date').min = new Date().toISOString().split('T')[0];
+  document.getElementById('addFormOverlay').style.display = 'flex';
 };
 
 function saveContact() {
@@ -811,7 +855,9 @@ function saveContact() {
   if(!name) { alert('Name is required'); return; }
   if(!date) { alert('Meet by date is required'); return; }
   state.contacts.push({ id:uid(), name, phone, dueDate:date, linkedin:li, met:false, metDate:null, createdAt:Date.now() });
-  save(); closeModal(); render();
+  save();
+  document.getElementById('addFormOverlay').style.display = 'none';
+  render();
 }
 
 // ─── DETAIL / EDIT ────────────────────────────────────────────────────────────
@@ -830,39 +876,18 @@ function openDetail(id) {
     `);
     return;
   }
-  openModal(`
-    <div class="modal-title">Edit Contact</div>
-    <div class="form-group">
-      <label class="form-label">Name *</label>
-      <input class="form-input" id="ei-name" type="text" inputmode="text" value="${esc(c.name)}"
-        autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false" />
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label">Phone</label>
-        <input class="form-input" id="ei-phone" type="tel" inputmode="tel" value="${esc(c.phone||'')}"
-          autocomplete="off" />
-      </div>
-      <div class="form-group">
-        <label class="form-label">Meet by *</label>
-        <input class="form-input" id="ei-date" type="date" value="${c.dueDate}" />
-      </div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">LinkedIn URL</label>
-      <input class="form-input" id="ei-li" type="text" inputmode="url" value="${esc(c.linkedin||'')}"
-        autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" />
-    </div>
-    <div class="modal-footer">
-      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
-      <button class="btn-save" onclick="updateContact('${id}')">Update</button>
-    </div>
-    <button class="btn-delete" style="background:rgba(6,214,160,0.08);border-color:rgba(6,214,160,0.2);color:var(--teal);margin-top:10px;" onclick="markMet('${id}');closeModal();">✓ Mark as Met</button>
-    <button class="btn-delete" onclick="deleteContact('${id}')">🗑 Remove Contact</button>
-  `);
+  // Populate the permanent edit form
+  document.getElementById('ei-id').value   = id;
+  document.getElementById('ei-name').value = c.name || '';
+  document.getElementById('ei-phone').value= c.phone || '';
+  document.getElementById('ei-date').value = c.dueDate || '';
+  document.getElementById('ei-li').value   = c.linkedin || '';
+  document.getElementById('ei-date').min   = '';
+  document.getElementById('editFormOverlay').style.display = 'flex';
 }
 
 function updateContact(id) {
+  if(!id) id = document.getElementById('ei-id').value;
   const c = state.contacts.find(x=>x.id===id);
   if(!c) return;
   const name = document.getElementById('ei-name').value.trim();
@@ -872,13 +897,18 @@ function updateContact(id) {
   c.phone   = document.getElementById('ei-phone').value.trim();
   c.dueDate = date;
   c.linkedin= document.getElementById('ei-li').value.trim();
-  save(); closeModal(); render();
+  save();
+  document.getElementById('editFormOverlay').style.display = 'none';
+  closeModal(); render();
 }
 
 function deleteContact(id) {
+  if(!id) id = document.getElementById('ei-id').value;
   if(!confirm('Remove this contact?')) return;
   state.contacts = state.contacts.filter(x=>x.id!==id);
-  save(); closeModal(); render();
+  save();
+  document.getElementById('editFormOverlay').style.display = 'none';
+  closeModal(); render();
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
