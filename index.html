@@ -27,39 +27,44 @@
       font-family:'Plus Jakarta Sans',sans-serif;
       background:var(--bg); color:var(--text);
       height:100%; overflow:hidden;
-      /* NO position:fixed anywhere. NO backdrop-filter. NO z-index stacking. */
     }
 
-    /* ── SCREEN STACK ──
-       All screens live side-by-side using translateX.
-       The wrapper slides to show the active screen.
-       This means NOTHING is position:fixed or position:absolute — 
-       iOS PWA touch events work perfectly on normal flow elements.
+    /* ── SCREEN STACK (FIXED FOR iOS PWA BUG) ──
+       Screens stack absolutely and toggle visibility.
+       This prevents the iOS keyboard touch-target detach bug.
     */
     #screenWrap {
-      display:flex;
-      width:500%; /* 5 screens */
-      height:100%;
-      transition:transform 0.32s cubic-bezier(0.4,0,0.2,1);
+      width: 100%;
+      height: 100%;
+      position: relative;
     }
 
     .screen {
-      width:20%; /* each screen = 100vw (1/5 of 500%) */
-      height:100%;
-      overflow-y:auto;
-      -webkit-overflow-scrolling:touch;
-      flex-shrink:0;
-      background:var(--bg);
+      width: 100%; 
+      height: 100%;
+      position: absolute;
+      top: 0; 
+      left: 0;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      background: var(--bg);
+      display: none; /* Hidden by default */
+      opacity: 0;
+      transition: opacity 0.2s ease-in-out;
     }
 
-    /* ── NAV BARS (sticky inside each screen, not fixed) ── */
+    .screen.active {
+      display: block;
+      opacity: 1;
+    }
+
+    /* ── NAV BARS ── */
     .nav-bar {
       display:flex; align-items:center; gap:10px;
       padding: calc(env(safe-area-inset-top,0px) + 14px) 18px 14px;
       background:var(--bg);
       border-bottom:1px solid var(--border);
       position:sticky; top:0;
-      /* NO z-index, NO backdrop-filter */
     }
 
     .app-logo {
@@ -95,7 +100,7 @@
     /* ── HOME SCREEN CONTENT ── */
     .main { padding:18px 15px 30px; max-width:480px; margin:0 auto; }
 
-    /* ADD button — inline at bottom of home, NOT fixed */
+    /* ADD button */
     .add-btn-row {
       padding:0 15px 30px;
       max-width:480px; margin:0 auto;
@@ -224,7 +229,7 @@
 
 <div id="screenWrap">
 
-  <div class="screen" id="s0">
+  <div class="screen active" id="s0">
     <div class="nav-bar">
       <div>
         <div class="app-logo">Circles</div>
@@ -382,11 +387,30 @@ function load(){
   }catch(e){}
 }
 
-// ── NAVIGATION ────────────────────────────────────────────────────────────
-// Move the flex container left to show a screen by index (0-4)
-// Each screen is 20% of the 500%-wide wrapper = exactly 100vw
-function nav(idx){
-  document.getElementById('screenWrap').style.transform=`translateX(-${idx*20}%)`;
+// ── NAVIGATION (UPDATED FOR iOS) ──────────────────────────────────────────
+// Toggles the 'active' class to prevent the iOS PWA keyboard touch-target detach bug
+function nav(idx) {
+  const screens = document.querySelectorAll('.screen');
+  screens.forEach(screen => {
+    screen.classList.remove('active');
+    // Allow a tiny amount of time for the opacity transition to start 
+    // before entirely removing the element from layout flow
+    setTimeout(() => {
+      if (!screen.classList.contains('active')) {
+        screen.style.display = 'none';
+      }
+    }, 200); 
+  });
+
+  const targetScreen = document.getElementById('s' + idx);
+  targetScreen.style.display = 'block';
+  
+  // Force browser reflow so it acknowledges the display change before animating opacity
+  void targetScreen.offsetWidth; 
+  
+  setTimeout(() => {
+    targetScreen.classList.add('active');
+  }, 10);
 }
 
 function navAdd(){
