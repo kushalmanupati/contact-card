@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f0e17" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Circles" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <title>Circles</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg:#0f0e17; --surface:#1a1828; --card:#22203a;
+      --border:rgba(255,255,255,0.08); --text:#f0eeff;
+      --muted:rgba(240,238,255,0.45);
+      --cyan:#00d4ff; --lime:#aaff5c; --orange:#ff7b35;
+      --violet:#b57bff; --pink:#ff5fa0; --yellow:#ffd166;
+      --teal:#06d6a0; --red:#ff4757;
+    }
+    * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+
+    html { height:100%; }
+    body {
+      font-family:'Plus Jakarta Sans',sans-serif;
+      background:var(--bg); color:var(--text);
+      height:100%; overflow:hidden;
+      /* NO position:fixed anywhere. NO backdrop-filter. NO z-index stacking. */
+    }
+
+    /* ── SCREEN STACK ──
+       All screens live side-by-side using translateX.
+       The wrapper slides to show the active screen.
+       This means NOTHING is position:fixed or position:absolute — 
+       iOS PWA touch events work perfectly on normal flow elements.
+    */
+    #screenWrap {
+      display:flex;
+      width:500%; /* 5 screens */
+      height:100%;
+      transition:transform 0.32s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    .screen {
+      width:20%; /* each screen = 100vw (1/5 of 500%) */
+      height:100%;
+      overflow-y:auto;
+      -webkit-overflow-scrolling:touch;
+      flex-shrink:0;
+      background:var(--bg);
+    }
+
+    /* ── NAV BARS (sticky inside each screen, not fixed) ── */
+    .nav-bar {
+      display:flex; align-items:center; gap:10px;
+      padding: calc(env(safe-area-inset-top,0px) + 14px) 18px 14px;
+      background:var(--bg);
+      border-bottom:1px solid var(--border);
+      position:sticky; top:0;
+      /* NO z-index, NO backdrop-filter */
+    }
+
+    .app-logo {
+      font-family:'Syne',sans-serif; font-size:24px; font-weight:800;
+      background:linear-gradient(90deg,var(--cyan),var(--violet));
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+    }
+    .app-tagline { font-size:10px; color:var(--muted); letter-spacing:1.6px; text-transform:uppercase; margin-top:1px; }
+
+    .profile-chip {
+      margin-left:auto;
+      display:flex; align-items:center; gap:7px;
+      background:rgba(181,123,255,0.12); border:1px solid rgba(181,123,255,0.25);
+      border-radius:30px; padding:6px 12px 6px 8px; cursor:pointer;
+    }
+    .profile-avatar {
+      width:26px; height:26px; border-radius:50%;
+      background:linear-gradient(135deg,var(--cyan),var(--violet));
+      display:flex; align-items:center; justify-content:center;
+      font-family:'Syne',sans-serif; font-size:11px; font-weight:800; color:var(--bg);
+    }
+    .profile-name { font-size:13px; font-weight:700; color:var(--violet); white-space:nowrap; }
+    .profile-edit-icon { font-size:10px; color:var(--muted); }
+
+    .back-btn {
+      width:36px; height:36px; border-radius:12px;
+      background:rgba(255,255,255,0.07); border:none;
+      color:var(--text); font-size:20px; cursor:pointer;
+      display:flex; align-items:center; justify-content:center;
+    }
+    .nav-title { font-family:'Syne',sans-serif; font-size:20px; font-weight:800; }
+
+    /* ── HOME SCREEN CONTENT ── */
+    .main { padding:18px 15px 30px; max-width:480px; margin:0 auto; }
+
+    /* ADD button — inline at bottom of home, NOT fixed */
+    .add-btn-row {
+      padding:0 15px 30px;
+      max-width:480px; margin:0 auto;
+    }
+    .add-btn-big {
+      display:flex; align-items:center; justify-content:center; gap:10px;
+      width:100%; padding:16px;
+      background:linear-gradient(135deg,var(--cyan),var(--violet));
+      border:none; border-radius:18px;
+      font-family:'Plus Jakarta Sans',sans-serif; font-size:16px; font-weight:700;
+      color:var(--bg); cursor:pointer;
+    }
+
+    /* ── PROGRESS BARS ── */
+    .pb-strip { margin-bottom:10px; }
+    .pb-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:7px; }
+    .pb-label { display:flex; align-items:center; gap:7px; font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; }
+    .met-bar .pb-label { color:var(--teal); }
+    .missed-bar .pb-label { color:var(--orange); }
+    .pb-dot { width:7px; height:7px; border-radius:50%; }
+    .met-bar .pb-dot { background:var(--teal); box-shadow:0 0 8px var(--teal); }
+    .missed-bar .pb-dot { background:var(--orange); box-shadow:0 0 8px var(--orange); }
+    .pb-nums { font-family:'Syne',sans-serif; font-size:16px; font-weight:800; }
+    .met-bar .pb-nums { color:var(--teal); }
+    .missed-bar .pb-nums { color:var(--orange); }
+    .pb-nums .of-total { font-size:12px; font-weight:500; color:var(--muted); }
+    .pb-track { height:7px; background:rgba(255,255,255,0.07); border-radius:4px; overflow:hidden; }
+    .pb-fill { height:100%; border-radius:4px; width:0%; transition:width 1.1s cubic-bezier(0.34,1.2,0.64,1); }
+    .met-bar .pb-fill { background:linear-gradient(90deg,var(--teal),var(--cyan)); }
+    .missed-bar .pb-fill { background:linear-gradient(90deg,var(--red),var(--orange)); }
+
+    /* ── DASHBOARD ── */
+    .dashboard { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:10px; }
+    .stat-card { border-radius:18px; padding:14px 10px 12px; text-align:center; border:1px solid transparent; }
+    .stat-card.planned-past { background:linear-gradient(150deg,rgba(255,95,160,0.18),rgba(181,123,255,0.08)); border-color:rgba(255,95,160,0.2); }
+    .stat-card.met-past { background:linear-gradient(150deg,rgba(170,255,92,0.16),rgba(6,214,160,0.07)); border-color:rgba(170,255,92,0.2); }
+    .stat-card.planned-future { background:linear-gradient(150deg,rgba(0,212,255,0.16),rgba(181,123,255,0.07)); border-color:rgba(0,212,255,0.2); }
+    .stat-value { font-family:'Syne',sans-serif; font-size:32px; font-weight:800; line-height:1; margin-bottom:5px; }
+    .planned-past .stat-value { color:var(--pink); }
+    .met-past .stat-value { color:var(--lime); }
+    .planned-future .stat-value { color:var(--cyan); }
+    .stat-label { font-size:10px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.3px; line-height:1.35; }
+
+    /* ── SECTION LABELS ── */
+    .section-label { font-size:10px; font-weight:700; letter-spacing:2.5px; text-transform:uppercase; color:var(--muted); margin-bottom:10px; display:flex; align-items:center; gap:8px; }
+    .section-label::after { content:''; flex:1; height:1px; background:var(--border); }
+
+    /* ── NEXT UP CARD ── */
+    .next-up-card { border-radius:22px; padding:22px 20px; margin-bottom:22px; position:relative; overflow:hidden; background:linear-gradient(140deg,#1e1c38,#28204a); border:1px solid rgba(181,123,255,0.2); }
+    .blob { position:absolute; border-radius:50%; pointer-events:none; }
+    .blob1 { top:-50px; right:-50px; width:150px; height:150px; background:radial-gradient(circle,rgba(181,123,255,0.25),transparent 70%); }
+    .blob2 { bottom:-40px; left:-40px; width:120px; height:120px; background:radial-gradient(circle,rgba(0,212,255,0.15),transparent 70%); }
+    .empty-state { color:var(--muted); font-size:14px; text-align:center; padding:10px 0; position:relative; }
+    .card-row { display:flex; align-items:flex-start; gap:14px; position:relative; }
+    .card-avatar { width:58px; height:58px; border-radius:18px; display:flex; align-items:center; justify-content:center; font-family:'Syne',sans-serif; font-size:22px; font-weight:800; color:#fff; flex-shrink:0; }
+    .card-info { flex:1; }
+    .card-name { font-family:'Syne',sans-serif; font-size:22px; font-weight:700; color:var(--text); margin-bottom:4px; }
+    .card-due { font-size:12px; font-weight:600; color:var(--violet); margin-bottom:5px; }
+    .card-due.overdue { color:var(--red); }
+    .card-phone-txt { font-size:12px; color:var(--muted); }
+    .card-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:16px; position:relative; }
+    .action-btn { display:flex; align-items:center; gap:5px; padding:9px 16px; border-radius:30px; border:none; font-family:'Plus Jakarta Sans',sans-serif; font-size:12px; font-weight:700; cursor:pointer; text-decoration:none; }
+    .btn-met { background:linear-gradient(135deg,var(--teal),var(--cyan)); color:var(--bg); }
+    .btn-call { background:rgba(255,255,255,0.08); color:var(--text); border:1px solid rgba(255,255,255,0.12); }
+    .btn-li { background:rgba(0,212,255,0.12); color:var(--cyan); border:1px solid rgba(0,212,255,0.18); }
+
+    /* ── CONTACT LIST ── */
+    .contacts-list { display:flex; flex-direction:column; gap:8px; }
+    .contact-item { background:var(--card); border-radius:16px; padding:13px 15px; display:flex; flex-wrap:wrap; align-items:center; gap:12px; border:1px solid var(--border); cursor:pointer; }
+    .contact-item.overdue { background:rgba(255,71,87,0.07); border-color:rgba(255,71,87,0.25); }
+    .contact-item.met { opacity:0.45; }
+    .list-avatar { width:46px; height:46px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-family:'Syne',sans-serif; font-size:16px; font-weight:800; color:#fff; flex-shrink:0; }
+    .list-info { flex:1; min-width:0; }
+    .list-name { font-weight:700; font-size:15px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .list-name.met-strike { text-decoration:line-through; }
+    .list-sub { font-size:12px; color:var(--muted); margin-top:2px; }
+    .list-date { text-align:right; flex-shrink:0; }
+    .date-badge { display:inline-block; padding:4px 10px; border-radius:20px; font-size:11px; font-weight:700; }
+    .date-badge.overdue { background:rgba(255,71,87,0.14); color:var(--red); }
+    .date-badge.soon { background:rgba(255,209,102,0.14); color:var(--yellow); }
+    .date-badge.upcoming { background:rgba(0,212,255,0.11); color:var(--cyan); }
+    .date-badge.met { background:rgba(6,214,160,0.11); color:var(--teal); }
+    .days-label { font-size:10px; color:var(--muted); margin-top:3px; display:block; text-align:right; }
+    .item-actions { display:flex; gap:6px; width:100%; padding-top:8px; border-top:1px solid var(--border); margin-top:-4px; }
+    .item-act-btn { flex:1; padding:8px 4px; border-radius:10px; border:none; font-family:'Plus Jakarta Sans',sans-serif; font-size:11px; font-weight:700; cursor:pointer; }
+    .iab-later { background:rgba(181,123,255,0.12); color:var(--violet); }
+    .iab-cancel { background:rgba(255,71,87,0.12); color:var(--red); }
+    .iab-edit { background:rgba(255,255,255,0.06); color:var(--muted); }
+    .divider-label { font-size:10px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); margin:16px 0 8px; display:flex; align-items:center; gap:8px; }
+    .divider-label::after { content:''; flex:1; height:1px; background:var(--border); }
+    .empty-full { text-align:center; padding:40px 20px; color:var(--muted); }
+    .empty-full .emoji { font-size:44px; margin-bottom:12px; display:block; }
+    .empty-full p { font-size:14px; line-height:1.7; }
+
+    /* ── FORM SCREENS ── */
+    .form-body { padding:24px 18px 60px; max-width:480px; margin:0 auto; }
+    .form-group { margin-bottom:18px; }
+    .form-label { display:block; font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--muted); margin-bottom:8px; }
+    .form-input {
+      display:block; width:100%; padding:15px 16px;
+      background:var(--card); border:1.5px solid var(--border);
+      border-radius:14px; font-family:'Plus Jakarta Sans',sans-serif;
+      font-size:16px; color:var(--text);
+      -webkit-appearance:none; appearance:none;
+      outline:none;
+    }
+    .form-input:focus { border-color:var(--violet); }
+    .form-input::placeholder { color:rgba(240,238,255,0.2); }
+    .form-input[type=date] { color-scheme:dark; }
+    .form-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .btn-primary { display:block; width:100%; padding:16px; background:linear-gradient(135deg,var(--violet),var(--cyan)); border:none; border-radius:14px; font-family:'Plus Jakarta Sans',sans-serif; font-size:16px; font-weight:700; color:var(--bg); cursor:pointer; margin-bottom:12px; }
+    .btn-secondary { display:block; width:100%; padding:14px; background:transparent; border:1.5px solid var(--border); border-radius:14px; font-family:'Plus Jakarta Sans',sans-serif; font-size:15px; font-weight:600; color:var(--muted); cursor:pointer; margin-bottom:12px; }
+    .btn-danger { display:block; width:100%; padding:14px; background:rgba(255,71,87,0.08); border:1.5px solid rgba(255,71,87,0.2); border-radius:14px; font-family:'Plus Jakarta Sans',sans-serif; font-size:14px; font-weight:700; color:var(--red); cursor:pointer; margin-bottom:12px; }
+    .btn-success { display:block; width:100%; padding:14px; background:rgba(6,214,160,0.1); border:1.5px solid rgba(6,214,160,0.2); border-radius:14px; font-family:'Plus Jakarta Sans',sans-serif; font-size:14px; font-weight:700; color:var(--teal); cursor:pointer; margin-bottom:12px; }
+    .readonly-banner { background:rgba(6,214,160,0.1); border:1px solid rgba(6,214,160,0.2); border-radius:12px; padding:12px 16px; font-size:13px; color:var(--teal); margin-bottom:18px; text-align:center; font-weight:700; }
+    .shift-btns { display:flex; gap:8px; margin-top:8px; margin-bottom:16px; }
+    .shift-btn { flex:1; padding:9px 4px; background:rgba(181,123,255,0.1); border:1px solid rgba(181,123,255,0.2); border-radius:10px; color:var(--violet); font-family:'Plus Jakarta Sans',sans-serif; font-size:12px; font-weight:700; cursor:pointer; }
+  </style>
+</head>
+<body>
+
+<div id="screenWrap">
+
+  <!-- ═══ SCREEN 0: HOME ═══ -->
+  <div class="screen" id="s0">
+    <div class="nav-bar">
+      <div>
+        <div class="app-logo">Circles</div>
+        <div class="app-tagline">Keep in touch</div>
+      </div>
+      <div class="profile-chip" onclick="nav(1)">
+        <div class="profile-avatar" id="profileAvatar">?</div>
+        <div class="profile-name" id="profileNameLabel">Set name</div>
+        <div class="profile-edit-icon">✎</div>
+      </div>
+    </div>
+    <div class="main" id="mainContent"></div>
+    <div class="add-btn-row">
+      <button class="add-btn-big" onclick="navAdd()">＋ &nbsp;Add Contact</button>
+    </div>
+  </div>
+
+  <!-- ═══ SCREEN 1: PROFILE ═══ -->
+  <div class="screen" id="s1">
+    <div class="nav-bar">
+      <button class="back-btn" onclick="nav(0)">←</button>
+      <div class="nav-title">Your Profile</div>
+    </div>
+    <div class="form-body">
+      <div class="form-group">
+        <label class="form-label" for="pn-input">Your Name</label>
+        <input class="form-input" id="pn-input" type="text" inputmode="text"
+          placeholder="e.g. Kushal"
+          autocomplete="given-name" autocorrect="off" autocapitalize="words" spellcheck="false" />
+      </div>
+      <button class="btn-primary" onclick="saveProfileName()">Save Name</button>
+      <button class="btn-secondary" onclick="nav(0)">Cancel</button>
+    </div>
+  </div>
+
+  <!-- ═══ SCREEN 2: ADD CONTACT ═══ -->
+  <div class="screen" id="s2">
+    <div class="nav-bar">
+      <button class="back-btn" onclick="nav(0)">←</button>
+      <div class="nav-title">Add Contact</div>
+    </div>
+    <div class="form-body">
+      <div class="form-group">
+        <label class="form-label" for="fi-name">Name *</label>
+        <input class="form-input" id="fi-name" type="text" inputmode="text"
+          placeholder="Full name"
+          autocomplete="name" autocorrect="off" autocapitalize="words" spellcheck="false" />
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="fi-phone">Phone</label>
+          <input class="form-input" id="fi-phone" type="tel" inputmode="tel"
+            placeholder="+1 555 000" autocomplete="tel" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="fi-date">Meet by *</label>
+          <input class="form-input" id="fi-date" type="date" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="fi-li">LinkedIn URL</label>
+        <input class="form-input" id="fi-li" type="url" inputmode="url"
+          placeholder="https://linkedin.com/in/..."
+          autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" />
+      </div>
+      <button class="btn-primary" onclick="saveContact()">Save Contact</button>
+      <button class="btn-secondary" onclick="nav(0)">Cancel</button>
+    </div>
+  </div>
+
+  <!-- ═══ SCREEN 3: EDIT CONTACT ═══ -->
+  <div class="screen" id="s3">
+    <div class="nav-bar">
+      <button class="back-btn" onclick="nav(0)">←</button>
+      <div class="nav-title" id="editTitle">Edit Contact</div>
+    </div>
+    <div class="form-body">
+      <input type="hidden" id="ei-id" />
+
+      <div id="editLiveFields">
+        <div class="form-group">
+          <label class="form-label" for="ei-name">Name *</label>
+          <input class="form-input" id="ei-name" type="text" inputmode="text"
+            placeholder="Full name"
+            autocomplete="name" autocorrect="off" autocapitalize="words" spellcheck="false" />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="ei-phone">Phone</label>
+            <input class="form-input" id="ei-phone" type="tel" inputmode="tel"
+              placeholder="+1 555 000" autocomplete="tel" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="ei-date">Meet by *</label>
+            <input class="form-input" id="ei-date" type="date" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="ei-li">LinkedIn URL</label>
+          <input class="form-input" id="ei-li" type="url" inputmode="url"
+            placeholder="https://linkedin.com/in/..."
+            autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" />
+        </div>
+        <button class="btn-primary"  onclick="updateContact()">Update Contact</button>
+        <button class="btn-success"  onclick="markMetFromEdit()">✓ Mark as Met</button>
+        <button class="btn-danger"   onclick="deleteContact()">🗑 Remove Contact</button>
+        <button class="btn-secondary" onclick="nav(0)">Cancel</button>
+      </div>
+
+      <div id="metViewFields" style="display:none">
+        <div class="readonly-banner" id="metBanner"></div>
+        <div id="metDetails"></div>
+        <button class="btn-danger"    onclick="deleteContact()">🗑 Remove Contact</button>
+        <button class="btn-secondary" onclick="nav(0)">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ SCREEN 4: RESCHEDULE ═══ -->
+  <div class="screen" id="s4">
+    <div class="nav-bar">
+      <button class="back-btn" onclick="nav(0)">←</button>
+      <div class="nav-title">Reschedule</div>
+    </div>
+    <div class="form-body">
+      <input type="hidden" id="rs-id" />
+      <div class="form-group">
+        <label class="form-label" for="rs-date">New Meet-by Date *</label>
+        <input class="form-input" id="rs-date" type="date" />
+      </div>
+      <div class="shift-btns">
+        <button class="shift-btn" onclick="shiftDays(7)">+1 week</button>
+        <button class="shift-btn" onclick="shiftDays(14)">+2 weeks</button>
+        <button class="shift-btn" onclick="shiftDays(30)">+1 month</button>
+      </div>
+      <button class="btn-primary"  onclick="saveReschedule()">Reschedule</button>
+      <button class="btn-secondary" onclick="nav(0)">Cancel</button>
+    </div>
+  </div>
+
+</div><!-- end screenWrap -->
+
+<script>
+// ── STATE ─────────────────────────────────────────────────────────────────
+const STORE='circles_v3';
+let state={profileName:'',contacts:[]};
+
+function save(){localStorage.setItem(STORE,JSON.stringify(state));}
+function load(){
+  try{
+    const old=localStorage.getItem('circles_v2');
+    if(old){const o=JSON.parse(old);const ku=o.kushal||[],es=o.esha||[];state.contacts=ku.length>=es.length?ku:es;save();localStorage.removeItem('circles_v2');return;}
+    const d=localStorage.getItem(STORE);if(d)state=JSON.parse(d);
+  }catch(e){}
+}
+
+// ── NAVIGATION ────────────────────────────────────────────────────────────
+// Move the flex container left to show a screen by index (0-4)
+// Each screen is 20% of the 500%-wide wrapper = exactly 100vw
+function nav(idx){
+  document.getElementById('screenWrap').style.transform=`translateX(-${idx*20}%)`;
+}
+
+function navAdd(){
+  document.getElementById('fi-name').value='';
+  document.getElementById('fi-phone').value='';
+  document.getElementById('fi-date').value='';
+  document.getElementById('fi-li').value='';
+  document.getElementById('fi-date').min=new Date().toISOString().split('T')[0];
+  nav(2);
+}
+
+// ── UTILS ─────────────────────────────────────────────────────────────────
+function initials(n){return(n||'?').split(' ').map(w=>w[0]||'').join('').toUpperCase().slice(0,2)||'?';}
+const GRADS=['linear-gradient(135deg,#b57bff,#00d4ff)','linear-gradient(135deg,#ff5fa0,#ff7b35)','linear-gradient(135deg,#aaff5c,#06d6a0)','linear-gradient(135deg,#00d4ff,#06d6a0)','linear-gradient(135deg,#ffd166,#ff7b35)','linear-gradient(135deg,#b57bff,#ff5fa0)'];
+function colorFor(n){let h=0;for(const c of(n||''))h=(h*31+c.charCodeAt(0))&0xffff;return GRADS[h%GRADS.length];}
+function daysDiff(ds){const t=new Date();t.setHours(0,0,0,0);const d=new Date(ds);d.setHours(0,0,0,0);return Math.round((d-t)/86400000);}
+function fmt(ds){return new Date(ds).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}
+function daysLabel(d){if(d===0)return'Today';if(d===1)return'Tomorrow';if(d===-1)return'Yesterday';if(d<0)return`${-d}d overdue`;return`in ${d}d`;}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+function esc(s){if(!s)return'';return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+// ── PROFILE ───────────────────────────────────────────────────────────────
+function updateProfileChip(){
+  const n=state.profileName||'';
+  document.getElementById('profileNameLabel').textContent=n||'Set name';
+  document.getElementById('profileAvatar').textContent=n?initials(n):'?';
+}
+document.querySelector('.profile-chip').addEventListener('click',function(){
+  document.getElementById('pn-input').value=state.profileName||'';
+  nav(1);
+});
+function saveProfileName(){
+  state.profileName=document.getElementById('pn-input').value.trim();
+  save();updateProfileChip();nav(0);
+}
+
+// ── STATS ─────────────────────────────────────────────────────────────────
+function computeStats(){
+  const contacts=state.contacts;
+  const today=new Date();today.setHours(0,0,0,0);
+  const ms30=30*86400000,ms60=60*86400000;
+  let plannedLast30=0,metLast30=0,plannedNext60=0,totalMet=0,totalMissed=0,total=0;
+  for(const c of contacts){
+    if(!c.dueDate)continue;total++;
+    const due=new Date(c.dueDate);due.setHours(0,0,0,0);
+    const diff=due-today;
+    if(diff>=-ms30&&diff<=0)plannedLast30++;
+    if(diff>0&&diff<=ms60)plannedNext60++;
+    if(c.met){totalMet++;const md=new Date(c.metDate);md.setHours(0,0,0,0);if(today-md>=0&&today-md<=ms30)metLast30++;}
+    else if(diff<0)totalMissed++;
+  }
+  return{plannedLast30,metLast30,plannedNext60,totalMet,totalMissed,total};
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────
+function render(){
+  updateProfileChip();
+  const contacts=state.contacts;
+  const s=computeStats();
+  const active=contacts.filter(c=>!c.met).sort((a,b)=>new Date(a.dueDate)-new Date(b.dueDate));
+  const met=contacts.filter(c=>c.met).sort((a,b)=>new Date(b.metDate)-new Date(a.metDate));
+  const metPct=s.total>0?Math.round(s.totalMet/s.total*100):0;
+  const missedPct=s.total>0?Math.round(s.totalMissed/s.total*100):0;
+
+  let html='';
+  html+=`<div class="pb-strip met-bar"><div class="pb-header"><div class="pb-label"><span class="pb-dot"></span>People Met Overall</div><div class="pb-nums">${s.totalMet} <span class="of-total">/ ${s.total}</span></div></div><div class="pb-track"><div class="pb-fill" id="metFill"></div></div></div>`;
+  html+=`<div class="dashboard"><div class="stat-card planned-past"><div class="stat-value">${s.plannedLast30}</div><div class="stat-label">Planned<br>last 30d</div></div><div class="stat-card met-past"><div class="stat-value">${s.metLast30}</div><div class="stat-label">Met<br>last 30d</div></div><div class="stat-card planned-future"><div class="stat-value">${s.plannedNext60}</div><div class="stat-label">Planned<br>next 60d</div></div></div>`;
+  html+=`<div class="pb-strip missed-bar"><div class="pb-header"><div class="pb-label"><span class="pb-dot"></span>Missed Meetings</div><div class="pb-nums">${s.totalMissed} <span class="of-total">/ ${s.total}</span></div></div><div class="pb-track"><div class="pb-fill" id="missedFill"></div></div></div>`;
+
+  html+=`<div class="section-label" style="margin-top:18px">Next Up</div>`;
+  if(active.length===0){
+    html+=`<div class="next-up-card"><div class="blob blob1"></div><div class="blob blob2"></div><div class="empty-state">No upcoming meetings — tap Add Contact below!</div></div>`;
+  }else{
+    const c=active[0],diff=daysDiff(c.dueDate);
+    const oc=diff<0?'overdue':'';
+    const dl=diff<0?`⚠️ ${-diff} days overdue`:diff===0?'🔥 Due Today!':diff<=3?`⚡ Due ${fmt(c.dueDate)}`:`📅 Due ${fmt(c.dueDate)}`;
+    html+=`<div class="next-up-card"><div class="blob blob1"></div><div class="blob blob2"></div><div class="card-row"><div class="card-avatar" style="background:${colorFor(c.name)}">${initials(c.name)}</div><div class="card-info"><div class="card-name">${esc(c.name)}</div><div class="card-due ${oc}">${dl}</div>${c.phone?`<div class="card-phone-txt">${esc(c.phone)}</div>`:''}</div></div><div class="card-actions"><button class="action-btn btn-met" onclick="markMet('${c.id}')">✓ Mark as Met</button>${c.phone?`<a class="action-btn btn-call" href="tel:${esc(c.phone)}">📞 Call</a>`:''}${c.linkedin?`<a class="action-btn btn-li" href="${esc(c.linkedin)}" target="_blank">💼 LinkedIn</a>`:''}</div></div>`;
+  }
+
+  html+=`<div class="section-label">All Contacts</div>`;
+  if(contacts.length===0){
+    html+=`<div class="empty-full"><span class="emoji">👋</span><p>Add people you want to stay in touch with.</p></div>`;
+  }else{
+    html+=`<div class="contacts-list">`;
+    for(const c of active)html+=itemHtml(c);
+    if(met.length>0){html+=`<div class="divider-label">✓ Met</div>`;for(const c of met)html+=itemHtml(c);}
+    html+=`</div>`;
+  }
+
+  document.getElementById('mainContent').innerHTML=html;
+  requestAnimationFrame(()=>setTimeout(()=>{
+    const mf=document.getElementById('metFill'),xf=document.getElementById('missedFill');
+    if(mf)mf.style.width=metPct+'%';
+    if(xf)xf.style.width=missedPct+'%';
+  },100));
+}
+
+function itemHtml(c){
+  const diff=c.met?null:daysDiff(c.dueDate);
+  const over=!c.met&&diff<0,soon=!c.met&&diff!==null&&diff>=0&&diff<=7;
+  const bc=c.met?'met':over?'overdue':soon?'soon':'upcoming';
+  const bt=c.met?'✓ Met':fmt(c.dueDate);
+  const dl=c.met?(c.metDate?`met ${fmt(c.metDate)}`:''):daysLabel(diff);
+  const actRow=c.met?'':`<div class="item-actions" id="ia-${c.id}" style="display:none"><button class="item-act-btn iab-later" onclick="openReschedule('${c.id}');event.stopPropagation()">↪ Reschedule</button><button class="item-act-btn iab-cancel" onclick="cancelMeeting('${c.id}');event.stopPropagation()">✕ Cancel</button><button class="item-act-btn iab-edit" onclick="openEdit('${c.id}');event.stopPropagation()">✎ Edit</button></div>`;
+  const tap=c.met?`openEdit('${c.id}')`:`toggleActions('${c.id}')`;
+  return`<div class="contact-item${over?' overdue':''}${c.met?' met':''}" id="ci-${c.id}" onclick="${tap}"><div class="list-avatar" style="background:${colorFor(c.name)}">${initials(c.name)}</div><div class="list-info"><div class="list-name${c.met?' met-strike':''}">${esc(c.name)}</div><div class="list-sub">${c.phone?esc(c.phone):'&nbsp;'}</div></div><div class="list-date"><span class="date-badge ${bc}">${bt}</span><span class="days-label">${dl}</span></div>${actRow}</div>`;
+}
+
+// ── ACTIONS ───────────────────────────────────────────────────────────────
+function markMet(id){
+  const c=state.contacts.find(x=>x.id===id);if(!c)return;
+  c.met=true;c.metDate=new Date().toISOString().split('T')[0];
+  save();render();
+}
+
+let expandedId=null;
+function toggleActions(id){
+  if(expandedId&&expandedId!==id){const p=document.getElementById('ia-'+expandedId);if(p)p.style.display='none';}
+  const el=document.getElementById('ia-'+id);if(!el)return;
+  const open=el.style.display!=='none';
+  el.style.display=open?'none':'flex';
+  expandedId=open?null:id;
+}
+
+function cancelMeeting(id){
+  if(!confirm('Remove this meeting?'))return;
+  state.contacts=state.contacts.filter(x=>x.id!==id);
+  save();expandedId=null;render();
+}
+
+// ── SAVE CONTACT ──────────────────────────────────────────────────────────
+function saveContact(){
+  const name=document.getElementById('fi-name').value.trim();
+  const phone=document.getElementById('fi-phone').value.trim();
+  const date=document.getElementById('fi-date').value;
+  const li=document.getElementById('fi-li').value.trim();
+  if(!name){alert('Name is required');return;}
+  if(!date){alert('Meet by date is required');return;}
+  state.contacts.push({id:uid(),name,phone,dueDate:date,linkedin:li,met:false,metDate:null,createdAt:Date.now()});
+  save();nav(0);render();
+}
+
+// ── EDIT CONTACT ──────────────────────────────────────────────────────────
+function openEdit(id){
+  const c=state.contacts.find(x=>x.id===id);if(!c)return;
+  document.getElementById('ei-id').value=id;
+  if(c.met){
+    document.getElementById('editTitle').textContent=c.name;
+    document.getElementById('editLiveFields').style.display='none';
+    document.getElementById('metViewFields').style.display='block';
+    document.getElementById('metBanner').textContent=`✅ Met on ${fmt(c.metDate)}`;
+    let det='';
+    if(c.phone)det+=`<div class="form-group"><div class="form-label">Phone</div><div style="font-size:16px;padding:4px 0">${esc(c.phone)}</div></div>`;
+    if(c.linkedin)det+=`<div class="form-group"><div class="form-label">LinkedIn</div><a href="${esc(c.linkedin)}" target="_blank" style="color:var(--cyan);font-size:14px;">View Profile →</a></div>`;
+    det+=`<div class="form-group"><div class="form-label">Was Due</div><div style="font-size:16px;padding:4px 0">${fmt(c.dueDate)}</div></div>`;
+    document.getElementById('metDetails').innerHTML=det;
+  }else{
+    document.getElementById('editTitle').textContent='Edit Contact';
+    document.getElementById('editLiveFields').style.display='block';
+    document.getElementById('metViewFields').style.display='none';
+    document.getElementById('ei-name').value=c.name||'';
+    document.getElementById('ei-phone').value=c.phone||'';
+    document.getElementById('ei-date').value=c.dueDate||'';
+    document.getElementById('ei-li').value=c.linkedin||'';
+  }
+  nav(3);
+}
+
+function updateContact(){
+  const id=document.getElementById('ei-id').value;
+  const c=state.contacts.find(x=>x.id===id);if(!c)return;
+  const name=document.getElementById('ei-name').value.trim();
+  const date=document.getElementById('ei-date').value;
+  if(!name||!date){alert('Name and date are required');return;}
+  c.name=name;c.phone=document.getElementById('ei-phone').value.trim();
+  c.dueDate=date;c.linkedin=document.getElementById('ei-li').value.trim();
+  save();nav(0);render();
+}
+
+function markMetFromEdit(){
+  markMet(document.getElementById('ei-id').value);nav(0);
+}
+
+function deleteContact(){
+  const id=document.getElementById('ei-id').value;
+  if(!confirm('Remove this contact?'))return;
+  state.contacts=state.contacts.filter(x=>x.id!==id);
+  save();nav(0);render();
+}
+
+// ── RESCHEDULE ────────────────────────────────────────────────────────────
+function openReschedule(id){
+  const c=state.contacts.find(x=>x.id===id);if(!c)return;
+  document.getElementById('rs-id').value=id;
+  document.getElementById('rs-date').value=c.dueDate||'';
+  document.getElementById('rs-date').min=new Date().toISOString().split('T')[0];
+  nav(4);
+}
+
+function shiftDays(days){
+  const el=document.getElementById('rs-date');if(!el)return;
+  const base=el.value?new Date(el.value):new Date();
+  base.setDate(base.getDate()+days);
+  el.value=base.toISOString().split('T')[0];
+}
+
+function saveReschedule(){
+  const id=document.getElementById('rs-id').value;
+  const c=state.contacts.find(x=>x.id===id);if(!c)return;
+  const date=document.getElementById('rs-date').value;
+  if(!date){alert('Please pick a date');return;}
+  c.dueDate=date;save();expandedId=null;nav(0);render();
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────
+load();render();
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
