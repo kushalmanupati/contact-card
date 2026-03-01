@@ -362,8 +362,11 @@
     .form-input   {
       width:100%; padding:13px 15px;
       background:var(--card); border:1.5px solid var(--border);
-      border-radius:13px; font-family:'Plus Jakarta Sans',sans-serif; font-size:15px; color:var(--text);
+      border-radius:13px; font-family:'Plus Jakarta Sans',sans-serif; font-size:16px; color:var(--text);
       outline:none; transition:border-color 0.2s, box-shadow 0.2s;
+      -webkit-user-select: text;
+      user-select: text;
+      touch-action: manipulation;
     }
     .form-input:focus { border-color:var(--violet); box-shadow:0 0 0 3px rgba(181,123,255,0.15); }
     .form-input::placeholder { color:rgba(240,238,255,0.2); }
@@ -501,7 +504,8 @@ function openProfileEdit() {
     <div class="modal-title">Your Profile</div>
     <div class="form-group">
       <label class="form-label">Your Name</label>
-      <input class="form-input" id="pn-input" placeholder="e.g. Kushal" autocomplete="off"
+      <input class="form-input" id="pn-input" type="text" inputmode="text" placeholder="e.g. Kushal"
+        autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false"
         value="${esc(state.profileName)}" />
     </div>
     <div class="modal-footer">
@@ -749,8 +753,21 @@ function saveReschedule(id) {
 }
 
 // ─── MODAL HELPERS ────────────────────────────────────────────────────────────
-function openModal(html) { document.getElementById('modalInner').innerHTML=html; document.getElementById('modalOverlay').style.display='flex'; }
-function closeModal()    { document.getElementById('modalOverlay').style.display='none'; }
+function openModal(html) {
+  const overlay = document.getElementById('modalOverlay');
+  document.getElementById('modalInner').innerHTML = html;
+  overlay.style.display = 'flex';
+  // iOS PWA keyboard fix: focus first text input after DOM settles
+  setTimeout(() => {
+    const first = overlay.querySelector('input[type="text"], input[inputmode="text"], input[inputmode="url"]');
+    if (first) {
+      first.setAttribute('readonly', 'readonly');
+      first.focus();
+      setTimeout(() => { first.removeAttribute('readonly'); first.focus(); }, 50);
+    }
+  }, 150);
+}
+function closeModal() { document.getElementById('modalOverlay').style.display='none'; }
 function handleOverlayClick(e) { if(e.target===document.getElementById('modalOverlay')) closeModal(); }
 
 // ─── ADD ──────────────────────────────────────────────────────────────────────
@@ -759,12 +776,14 @@ document.getElementById('addBtn').onclick = function() {
     <div class="modal-title">Add Contact</div>
     <div class="form-group">
       <label class="form-label">Name *</label>
-      <input class="form-input" id="fi-name" placeholder="Full name" autocomplete="off" />
+      <input class="form-input" id="fi-name" type="text" inputmode="text" placeholder="Full name"
+        autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false" />
     </div>
     <div class="form-row">
       <div class="form-group">
         <label class="form-label">Phone</label>
-        <input class="form-input" id="fi-phone" placeholder="+1 555 000" type="tel" />
+        <input class="form-input" id="fi-phone" type="tel" inputmode="tel" placeholder="+1 555 000"
+          autocomplete="off" />
       </div>
       <div class="form-group">
         <label class="form-label">Meet by *</label>
@@ -773,7 +792,8 @@ document.getElementById('addBtn').onclick = function() {
     </div>
     <div class="form-group">
       <label class="form-label">LinkedIn URL</label>
-      <input class="form-input" id="fi-li" placeholder="https://linkedin.com/in/..." />
+      <input class="form-input" id="fi-li" type="text" inputmode="url" placeholder="https://linkedin.com/in/..."
+        autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" />
     </div>
     <div class="modal-footer">
       <button class="btn-cancel" onclick="closeModal()">Cancel</button>
@@ -814,12 +834,14 @@ function openDetail(id) {
     <div class="modal-title">Edit Contact</div>
     <div class="form-group">
       <label class="form-label">Name *</label>
-      <input class="form-input" id="ei-name" value="${esc(c.name)}" autocomplete="off" />
+      <input class="form-input" id="ei-name" type="text" inputmode="text" value="${esc(c.name)}"
+        autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false" />
     </div>
     <div class="form-row">
       <div class="form-group">
         <label class="form-label">Phone</label>
-        <input class="form-input" id="ei-phone" value="${esc(c.phone||'')}" type="tel" />
+        <input class="form-input" id="ei-phone" type="tel" inputmode="tel" value="${esc(c.phone||'')}"
+          autocomplete="off" />
       </div>
       <div class="form-group">
         <label class="form-label">Meet by *</label>
@@ -828,7 +850,8 @@ function openDetail(id) {
     </div>
     <div class="form-group">
       <label class="form-label">LinkedIn URL</label>
-      <input class="form-input" id="ei-li" value="${esc(c.linkedin||'')}" />
+      <input class="form-input" id="ei-li" type="text" inputmode="url" value="${esc(c.linkedin||'')}"
+        autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" />
     </div>
     <div class="modal-footer">
       <button class="btn-cancel" onclick="closeModal()">Cancel</button>
