@@ -477,7 +477,7 @@ function render(){
 
   let html='';
   html+=`<div class="pb-strip met-bar"><div class="pb-header"><div class="pb-label"><span class="pb-dot"></span>People Met Overall</div><div class="pb-nums">${s.totalMet} <span class="of-total">/ ${s.total}</span></div></div><div class="pb-track"><div class="pb-fill" id="metFill"></div></div></div>`;
-  html+=`<div class="dashboard"><div class="stat-card planned-past"><div class="stat-value">${s.plannedLast30}</div><div class="stat-label">Planned<br>last 30d</div></div><div class="stat-card met-past"><div class="stat-value">${s.metLast30}</div><div class="stat-label">Met<br>last 30d</div></div><div class="stat-card planned-future"><div class="stat-value">${s.plannedNext60}</div><div class="stat-label">Planned<br>next 60d</div></div></div>`;
+  html+=`<div class="dashboard"><div class="stat-card planned-past"><div class="stat-value">${s.plannedLast30}</div><div class="stat-label">Planned<br>L30D</div></div><div class="stat-card met-past"><div class="stat-value">${s.metLast30}</div><div class="stat-label">Met<br>L30D</div></div><div class="stat-card planned-future"><div class="stat-value">${s.plannedNext60}</div><div class="stat-label">Planned<br>N60D</div></div></div>`;
   html+=`<div class="pb-strip missed-bar"><div class="pb-header"><div class="pb-label"><span class="pb-dot"></span>Missed Meetings</div><div class="pb-nums">${s.totalMissed} <span class="of-total">/ ${s.total}</span></div></div><div class="pb-track"><div class="pb-fill" id="missedFill"></div></div></div>`;
 
   html+=`<div class="section-label" style="margin-top:18px">Next Up</div>`;
