@@ -93,70 +93,76 @@
     .nav-title { font-family:'Syne',sans-serif; font-size:20px; font-weight:800; }
 
     /* ── HOME SCREEN CONTENT ── */
-    .main { padding:18px 15px 100px; max-width:480px; margin:0 auto; }
+    .main { padding:18px 15px 110px; max-width:480px; margin:0 auto; }
 
-    /* ── FAB + SPEED DIAL ── */
-    /* The FAB sits in the HOME screen's normal flow at the very bottom,
-       but we pin it visually using sticky so it stays visible.
-       We use position:sticky on a wrapper that lives INSIDE the scrollable screen —
-       this avoids position:fixed iOS PWA issues entirely. */
+    /* ── FAB SPEED DIAL ──
+       Lives at the bottom of the home screen's scroll area.
+       position:sticky keeps it pinned at the bottom of the viewport
+       while you scroll. No position:fixed, no z-index stacking issues. */
     .fab-anchor {
       position:sticky;
-      bottom: calc(env(safe-area-inset-bottom,0px) + 20px);
-      display:flex; flex-direction:column; align-items:flex-end;
+      bottom:calc(env(safe-area-inset-bottom,0px) + 20px);
+      height:0; /* takes no space in flow */
+      display:flex;
+      flex-direction:column;
+      align-items:flex-end;
       padding-right:20px;
-      pointer-events:none; /* let taps through to backdrop */
-      z-index:50;
-      margin-top:-80px; /* pull up so it overlaps content, not adds space */
+      overflow:visible;
     }
-    .fab-anchor * { pointer-events:all; }
 
-    .fab-speed-dial { display:flex; flex-direction:column; align-items:flex-end; gap:10px; }
+    .fab-speed-dial {
+      display:flex; flex-direction:column; align-items:flex-end; gap:12px;
+      /* options sit above the main button */
+      margin-bottom:12px;
+    }
 
-    /* Speed dial options — hidden by default */
     .fab-option {
       display:flex; align-items:center; gap:10px;
-      opacity:0; transform:translateY(10px) scale(0.9);
-      transition:opacity 0.2s, transform 0.2s;
+      opacity:0; transform:translateY(8px);
+      transition:opacity 0.18s ease, transform 0.18s ease;
       pointer-events:none;
+      will-change:opacity,transform;
     }
     .fab-option.open {
-      opacity:1; transform:translateY(0) scale(1);
-      pointer-events:all;
+      opacity:1; transform:translateY(0);
+      pointer-events:auto;
     }
     .fab-option-label {
-      background:rgba(15,14,23,0.92); border:1px solid var(--border);
-      border-radius:20px; padding:6px 14px;
-      font-size:13px; font-weight:700; color:var(--text);
-      white-space:nowrap;
+      background:#1e1c33; border:1px solid rgba(255,255,255,0.12);
+      border-radius:20px; padding:8px 16px;
+      font-size:14px; font-weight:700; color:var(--text);
+      white-space:nowrap; cursor:pointer;
+      /* must be clickable */
+      -webkit-user-select:none; user-select:none;
     }
-    .fab-option-btn {
+    .fab-option-icon {
       width:46px; height:46px; border-radius:14px; border:none;
       display:flex; align-items:center; justify-content:center;
       font-size:20px; cursor:pointer; flex-shrink:0;
+      -webkit-user-select:none; user-select:none;
     }
-    .fab-option-btn.contact { background:linear-gradient(135deg,var(--cyan),var(--violet)); }
-    .fab-option-btn.bday    { background:linear-gradient(135deg,var(--yellow),var(--orange)); }
+    .fab-option-icon.contact { background:linear-gradient(135deg,var(--cyan),var(--violet)); color:#000; }
+    .fab-option-icon.bday    { background:linear-gradient(135deg,var(--yellow),var(--orange)); }
 
-    /* Main FAB button */
     .fab-main {
       width:58px; height:58px; border-radius:18px; border:none;
       background:linear-gradient(135deg,var(--violet),var(--cyan));
-      color:#fff; font-size:28px; cursor:pointer;
+      color:#fff; font-size:28px; line-height:1; cursor:pointer;
       display:flex; align-items:center; justify-content:center;
-      box-shadow:0 6px 24px rgba(0,212,255,0.35);
-      transition:transform 0.25s cubic-bezier(0.34,1.56,0.64,1);
+      box-shadow:0 6px 28px rgba(0,212,255,0.4);
+      transition:transform 0.22s cubic-bezier(0.34,1.56,0.64,1);
+      -webkit-user-select:none; user-select:none;
       flex-shrink:0;
     }
     .fab-main.open { transform:rotate(45deg); }
 
-    /* Dim backdrop when speed dial is open */
-    .fab-backdrop {
+    /* ── Dim overlay when FAB open — sits behind options, above content ── */
+    #fabDimmer {
       display:none; position:fixed; inset:0;
-      background:rgba(0,0,0,0.4);
-      z-index:49;
+      background:rgba(0,0,0,0.45);
+      /* no z-index — sits in normal stacking under FAB anchor */
     }
-    .fab-backdrop.open { display:block; }
+    #fabDimmer.open { display:block; }
 
     /* ── PROGRESS BARS ── */
     .pb-strip { margin-bottom:10px; }
@@ -278,7 +284,8 @@
     .backup-card-title { font-size:14px; font-weight:700; color:var(--text); margin-bottom:6px; }
     .backup-card-desc { font-size:12px; color:var(--muted); line-height:1.6; margin-bottom:14px; }
     .backup-btn { display:block; width:100%; padding:13px; border-radius:12px; border:none; font-family:'Plus Jakarta Sans',sans-serif; font-size:14px; font-weight:700; cursor:pointer; }
-    .backup-btn-copy { background:rgba(0,212,255,0.1); color:var(--cyan); border:1px solid rgba(0,212,255,0.2); }
+    .backup-btn-copy  { background:rgba(0,212,255,0.1); color:var(--cyan); border:1px solid rgba(0,212,255,0.2); }
+    .backup-btn-restore { background:rgba(181,123,255,0.1); color:var(--violet); border:1px solid rgba(181,123,255,0.2); }
     .backup-btn-reset { background:rgba(255,71,87,0.08); color:var(--red); border:1px solid rgba(255,71,87,0.2); }
 
     /* ── NOTIFICATION PERMISSION CARD ── */
@@ -348,24 +355,24 @@
     </div>
     <div class="main" id="mainContent"></div>
 
-    <!-- FAB speed-dial — sticky inside the scrollable home screen -->
+    <!-- Dimmer sits here, inside s0, before the sticky FAB anchor -->
+    <div id="fabDimmer" onclick="closeFab()"></div>
+
+    <!-- FAB speed-dial — sticky, lives at the bottom of the scroll area -->
     <div class="fab-anchor">
       <div class="fab-speed-dial" id="fabDial">
         <div class="fab-option" id="fabOptBday">
-          <div class="fab-option-label">🎂 Birthday</div>
-          <button class="fab-option-btn bday" onclick="navAddBday()">🎂</button>
+          <div class="fab-option-label" onclick="navAddBday()">🎂 Birthday</div>
+          <div class="fab-option-icon bday" onclick="navAddBday()">🎂</div>
         </div>
         <div class="fab-option" id="fabOptContact">
-          <div class="fab-option-label">＋ Contact</div>
-          <button class="fab-option-btn contact" onclick="navAdd()">＋</button>
+          <div class="fab-option-label" onclick="navAdd()">＋ Contact</div>
+          <div class="fab-option-icon contact" onclick="navAdd()">＋</div>
         </div>
-        <button class="fab-main" id="fabMain" onclick="toggleFab()">＋</button>
       </div>
+      <button class="fab-main" id="fabMain" onclick="toggleFab()">＋</button>
     </div>
   </div>
-
-  <!-- Backdrop to close FAB when tapping outside -->
-  <div class="fab-backdrop" id="fabBackdrop" onclick="closeFab()"></div>
 
   <!-- ═══ SCREEN 1: PROFILE ═══ -->
   <div class="screen" id="s1">
@@ -400,6 +407,17 @@
         <div class="backup-card-desc">Copy all your contacts and birthdays as text — paste into Notes, email, or anywhere to keep a backup.</div>
         <button class="backup-btn backup-btn-copy" onclick="copyData()">Copy to Clipboard</button>
         <div id="copyConfirm" style="display:none;font-size:12px;color:var(--teal);margin-top:8px;text-align:center;font-weight:600;">✓ Copied!</div>
+      </div>
+
+      <div class="backup-card">
+        <div class="backup-card-title">📥 Restore from Backup</div>
+        <div class="backup-card-desc">Paste your previously copied backup text below, then tap Restore. This will <strong style="color:var(--red)">replace</strong> your current data.</div>
+        <textarea class="form-input" id="restoreInput" rows="6"
+          placeholder="Paste your backup text here..."
+          style="resize:none;line-height:1.5;font-size:14px;margin-bottom:10px;"
+          autocorrect="off" autocapitalize="none" spellcheck="false"></textarea>
+        <button class="backup-btn backup-btn-restore" onclick="restoreData()">Restore Data</button>
+        <div id="restoreStatus" style="display:none;font-size:12px;margin-top:8px;text-align:center;font-weight:600;"></div>
       </div>
 
       <div class="backup-card">
@@ -574,19 +592,25 @@ let fabOpen=false;
 function toggleFab(){
   fabOpen=!fabOpen;
   document.getElementById('fabMain').classList.toggle('open',fabOpen);
-  document.getElementById('fabBackdrop').classList.toggle('open',fabOpen);
-  document.getElementById('fabOptContact').classList.toggle('open',fabOpen);
-  document.getElementById('fabOptBday').classList.toggle('open',fabOpen);
-  // stagger the options slightly
+  document.getElementById('fabDimmer').classList.toggle('open',fabOpen);
+  const c=document.getElementById('fabOptContact');
+  const b=document.getElementById('fabOptBday');
   if(fabOpen){
-    document.getElementById('fabOptContact').style.transitionDelay='0s';
-    document.getElementById('fabOptBday').style.transitionDelay='0.06s';
+    c.style.transitionDelay='0s';
+    b.style.transitionDelay='0.07s';
+    c.classList.add('open');
+    b.classList.add('open');
+  } else {
+    c.style.transitionDelay='0s';
+    b.style.transitionDelay='0s';
+    c.classList.remove('open');
+    b.classList.remove('open');
   }
 }
 function closeFab(){
   fabOpen=false;
   document.getElementById('fabMain').classList.remove('open');
-  document.getElementById('fabBackdrop').classList.remove('open');
+  document.getElementById('fabDimmer').classList.remove('open');
   document.getElementById('fabOptContact').classList.remove('open');
   document.getElementById('fabOptBday').classList.remove('open');
 }
@@ -941,6 +965,82 @@ function showCopyConfirm(){
   if(!el)return;
   el.style.display='block';
   setTimeout(()=>{ el.style.display='none'; },2500);
+}
+
+function restoreData(){
+  const raw=(document.getElementById('restoreInput').value||'').trim();
+  if(!raw){ showRestoreStatus('Please paste your backup text first.','var(--red)'); return; }
+
+  // Parse contacts from backup text
+  const lines=raw.split('\n').map(l=>l.trim()).filter(Boolean);
+  const newContacts=[], newBirthdays=[];
+  let section='';
+
+  for(const line of lines){
+    if(line.startsWith('── Contacts')||line.includes('Contacts (')){section='contacts';continue;}
+    if(line.startsWith('── Birthdays')||line.includes('Birthdays (')){section='birthdays';continue;}
+    if(line.startsWith('===')){ section=''; continue; }
+    if(line.startsWith('Profile:')){ continue; }
+    if(line==='(none)') continue;
+
+    if(section==='contacts'&&line.startsWith('  ')){
+      const parts=line.trim().split(' · ');
+      if(parts.length<1)continue;
+      const name=parts[0];
+      const phone=parts.find(p=>/^\+?[\d\s\-()]{6,}$/.test(p))||'';
+      const metPart=parts.find(p=>p.startsWith('✓ Met '));
+      const duePart=parts.find(p=>p.startsWith('Meet by '));
+      const li=parts.find(p=>p.startsWith('http'))||'';
+      const metDate=metPart?parseBackupDate(metPart.replace('✓ Met ','')):null;
+      const dueDate=duePart?parseBackupDate(duePart.replace('Meet by ','')):new Date().toISOString().split('T')[0];
+      if(name) newContacts.push({id:uid(),name,phone,dueDate,linkedin:li,met:!!metDate,metDate,createdAt:Date.now()});
+    }
+
+    if(section==='birthdays'&&line.startsWith('  ')){
+      const parts=line.trim().split(' · ');
+      if(parts.length<2)continue;
+      const name=parts[0];
+      const dateStr=parseBackupBdayDate(parts[1]);
+      if(name&&dateStr) newBirthdays.push({id:uid(),name,date:dateStr});
+    }
+  }
+
+  if(newContacts.length===0&&newBirthdays.length===0){
+    showRestoreStatus('Could not parse any data. Make sure you pasted a valid Rolodex backup.','var(--red)');
+    return;
+  }
+
+  if(!confirm(`Restore ${newContacts.length} contact(s) and ${newBirthdays.length} birthday(s)? This replaces your current data.`))return;
+  state.contacts=newContacts;
+  state.birthdays=newBirthdays.length>0?newBirthdays:[...DEFAULT_BIRTHDAYS];
+  save(); render();
+  document.getElementById('restoreInput').value='';
+  showRestoreStatus(`✓ Restored ${newContacts.length} contacts and ${newBirthdays.length} birthdays.`,'var(--teal)');
+}
+
+function parseBackupDate(str){
+  // e.g. "Mar 7, 2025" → "2025-03-07"
+  try{
+    const d=new Date(str);
+    if(!isNaN(d)) return d.toISOString().split('T')[0];
+  }catch(e){}
+  return null;
+}
+
+function parseBackupBdayDate(str){
+  // e.g. "March 20" → "2000-03-20"
+  try{
+    const d=new Date(str+' 2000');
+    if(!isNaN(d)) return `2000-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }catch(e){}
+  return null;
+}
+
+function showRestoreStatus(msg,color){
+  const el=document.getElementById('restoreStatus');
+  if(!el)return;
+  el.textContent=msg; el.style.color=color; el.style.display='block';
+  setTimeout(()=>{ el.style.display='none'; },4000);
 }
 
 function resetData(){
