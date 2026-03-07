@@ -6,10 +6,10 @@
   <meta name="theme-color" content="#0f0e17" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Circles" />
+  <meta name="apple-mobile-web-app-title" content="Rolodex" />
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="icon-192.png" />
-  <title>Circles</title>
+  <title>Rolodex</title>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     :root {
@@ -93,30 +93,70 @@
     .nav-title { font-family:'Syne',sans-serif; font-size:20px; font-weight:800; }
 
     /* ── HOME SCREEN CONTENT ── */
-    .main { padding:18px 15px 30px; max-width:480px; margin:0 auto; }
+    .main { padding:18px 15px 100px; max-width:480px; margin:0 auto; }
 
-    /* ADD buttons row — inline at bottom of home, NOT fixed */
-    .add-btn-row {
-      padding:0 15px 30px;
-      max-width:480px; margin:0 auto;
-      display:flex; gap:10px;
+    /* ── FAB + SPEED DIAL ── */
+    /* The FAB sits in the HOME screen's normal flow at the very bottom,
+       but we pin it visually using sticky so it stays visible.
+       We use position:sticky on a wrapper that lives INSIDE the scrollable screen —
+       this avoids position:fixed iOS PWA issues entirely. */
+    .fab-anchor {
+      position:sticky;
+      bottom: calc(env(safe-area-inset-bottom,0px) + 20px);
+      display:flex; flex-direction:column; align-items:flex-end;
+      padding-right:20px;
+      pointer-events:none; /* let taps through to backdrop */
+      z-index:50;
+      margin-top:-80px; /* pull up so it overlaps content, not adds space */
     }
-    .add-btn-big {
-      flex:1; display:flex; align-items:center; justify-content:center; gap:8px;
-      padding:16px 10px;
-      background:linear-gradient(135deg,var(--cyan),var(--violet));
-      border:none; border-radius:18px;
-      font-family:'Plus Jakarta Sans',sans-serif; font-size:15px; font-weight:700;
-      color:var(--bg); cursor:pointer;
+    .fab-anchor * { pointer-events:all; }
+
+    .fab-speed-dial { display:flex; flex-direction:column; align-items:flex-end; gap:10px; }
+
+    /* Speed dial options — hidden by default */
+    .fab-option {
+      display:flex; align-items:center; gap:10px;
+      opacity:0; transform:translateY(10px) scale(0.9);
+      transition:opacity 0.2s, transform 0.2s;
+      pointer-events:none;
     }
-    .add-btn-bday {
-      flex:1; display:flex; align-items:center; justify-content:center; gap:8px;
-      padding:16px 10px;
-      background:linear-gradient(135deg,var(--yellow),var(--orange));
-      border:none; border-radius:18px;
-      font-family:'Plus Jakarta Sans',sans-serif; font-size:15px; font-weight:700;
-      color:var(--bg); cursor:pointer;
+    .fab-option.open {
+      opacity:1; transform:translateY(0) scale(1);
+      pointer-events:all;
     }
+    .fab-option-label {
+      background:rgba(15,14,23,0.92); border:1px solid var(--border);
+      border-radius:20px; padding:6px 14px;
+      font-size:13px; font-weight:700; color:var(--text);
+      white-space:nowrap;
+    }
+    .fab-option-btn {
+      width:46px; height:46px; border-radius:14px; border:none;
+      display:flex; align-items:center; justify-content:center;
+      font-size:20px; cursor:pointer; flex-shrink:0;
+    }
+    .fab-option-btn.contact { background:linear-gradient(135deg,var(--cyan),var(--violet)); }
+    .fab-option-btn.bday    { background:linear-gradient(135deg,var(--yellow),var(--orange)); }
+
+    /* Main FAB button */
+    .fab-main {
+      width:58px; height:58px; border-radius:18px; border:none;
+      background:linear-gradient(135deg,var(--violet),var(--cyan));
+      color:#fff; font-size:28px; cursor:pointer;
+      display:flex; align-items:center; justify-content:center;
+      box-shadow:0 6px 24px rgba(0,212,255,0.35);
+      transition:transform 0.25s cubic-bezier(0.34,1.56,0.64,1);
+      flex-shrink:0;
+    }
+    .fab-main.open { transform:rotate(45deg); }
+
+    /* Dim backdrop when speed dial is open */
+    .fab-backdrop {
+      display:none; position:fixed; inset:0;
+      background:rgba(0,0,0,0.4);
+      z-index:49;
+    }
+    .fab-backdrop.open { display:block; }
 
     /* ── PROGRESS BARS ── */
     .pb-strip { margin-bottom:10px; }
@@ -164,9 +204,10 @@
     .card-name { font-family:'Syne',sans-serif; font-size:17px; font-weight:700; color:var(--text); margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .card-due { font-size:11px; font-weight:600; color:var(--violet); }
     .card-due.overdue { color:var(--red); }
-    .card-actions { display:flex; gap:7px; flex-wrap:wrap; margin-top:10px; position:relative; }
-    .action-btn { display:flex; align-items:center; gap:4px; padding:7px 13px; border-radius:30px; border:none; font-family:'Plus Jakarta Sans',sans-serif; font-size:12px; font-weight:700; cursor:pointer; text-decoration:none; }
-    .btn-met { background:linear-gradient(135deg,var(--teal),var(--cyan)); color:var(--bg); }
+    .card-actions { display:flex; gap:7px; align-items:center; flex-shrink:0; }
+    .card-icon-btn { width:38px; height:38px; border-radius:12px; border:none; display:flex; align-items:center; justify-content:center; font-size:18px; cursor:pointer; flex-shrink:0; }
+    .card-icon-btn.tick  { background:rgba(6,214,160,0.15); color:var(--teal); }
+    .card-icon-btn.cross { background:rgba(255,71,87,0.12); color:var(--red); }
     .btn-call { background:rgba(255,255,255,0.08); color:var(--text); border:1px solid rgba(255,255,255,0.12); }
     .btn-li { background:rgba(0,212,255,0.12); color:var(--cyan); border:1px solid rgba(0,212,255,0.18); }
 
@@ -239,9 +280,56 @@
     .backup-btn { display:block; width:100%; padding:13px; border-radius:12px; border:none; font-family:'Plus Jakarta Sans',sans-serif; font-size:14px; font-weight:700; cursor:pointer; }
     .backup-btn-copy { background:rgba(0,212,255,0.1); color:var(--cyan); border:1px solid rgba(0,212,255,0.2); }
     .backup-btn-reset { background:rgba(255,71,87,0.08); color:var(--red); border:1px solid rgba(255,71,87,0.2); }
+
+    /* ── NOTIFICATION PERMISSION CARD ── */
+    .notif-card { background:linear-gradient(135deg,rgba(255,209,102,0.08),rgba(255,123,53,0.06)); border:1px solid rgba(255,209,102,0.2); border-radius:16px; padding:16px; margin-bottom:12px; }
+    .notif-card-title { font-size:14px; font-weight:700; color:var(--yellow); margin-bottom:6px; }
+    .notif-card-desc { font-size:12px; color:var(--muted); line-height:1.6; margin-bottom:14px; }
+    .notif-status { font-size:12px; font-weight:600; margin-top:10px; text-align:center; }
+    .notif-status.granted { color:var(--teal); }
+    .notif-status.denied  { color:var(--red); }
+    .backup-btn-notif { background:rgba(255,209,102,0.1); color:var(--yellow); border:1px solid rgba(255,209,102,0.25); }
+
+    /* ── BIRTHDAY BANNER OVERLAY ──
+       This one IS position:fixed but it's full-screen and the TOP layer —
+       no other content underneath it is interactive while it shows,
+       so iOS touch blocking is fine here.
+    */
+    #bdayBanner {
+      display:none;
+      position:fixed; inset:0;
+      background:rgba(10,9,20,0.96);
+      align-items:center; justify-content:center;
+      text-align:center; padding:30px;
+      /* show above everything */
+      z-index:999;
+    }
+    #bdayBanner.show { display:flex; flex-direction:column; }
+    .bday-banner-emoji { font-size:72px; margin-bottom:16px; animation:bdayPop 0.5s cubic-bezier(0.34,1.56,0.64,1); }
+    @keyframes bdayPop { from{transform:scale(0) rotate(-20deg);opacity:0} to{transform:scale(1) rotate(0);opacity:1} }
+    .bday-banner-title { font-family:'Syne',sans-serif; font-size:28px; font-weight:800; color:var(--yellow); margin-bottom:8px; }
+    .bday-banner-name  { font-family:'Syne',sans-serif; font-size:36px; font-weight:800; margin-bottom:8px;
+      background:linear-gradient(90deg,var(--yellow),var(--orange),var(--pink));
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+    .bday-banner-sub   { font-size:15px; color:var(--muted); margin-bottom:36px; line-height:1.6; }
+    .bday-banner-btn   { padding:16px 48px; background:linear-gradient(135deg,var(--yellow),var(--orange)); border:none; border-radius:18px; font-family:'Plus Jakarta Sans',sans-serif; font-size:16px; font-weight:700; color:var(--bg); cursor:pointer; }
+
+    /* confetti dots */
+    .confetti { position:absolute; width:8px; height:8px; border-radius:2px; animation:fall linear forwards; pointer-events:none; }
+    @keyframes fall { 0%{transform:translateY(-20px) rotate(0deg);opacity:1} 100%{transform:translateY(110vh) rotate(720deg);opacity:0} }
   </style>
 </head>
 <body>
+
+<!-- ── BIRTHDAY BANNER (full-screen, shown on top when it's someone's bday) ── -->
+<div id="bdayBanner">
+  <div id="bdayConfettiLayer" style="position:absolute;inset:0;overflow:hidden;pointer-events:none"></div>
+  <div class="bday-banner-emoji">🎂</div>
+  <div class="bday-banner-title">Happy Birthday!</div>
+  <div class="bday-banner-name" id="bdayBannerName"></div>
+  <div class="bday-banner-sub" id="bdayBannerSub">Wishing them an amazing day 🎉</div>
+  <button class="bday-banner-btn" onclick="dismissBdayBanner()">🎊 Celebrate!</button>
+</div>
 
 <div id="screenWrap">
 
@@ -259,11 +347,25 @@
       </div>
     </div>
     <div class="main" id="mainContent"></div>
-    <div class="add-btn-row">
-      <button class="add-btn-big" onclick="navAdd()">＋ Contact</button>
-      <button class="add-btn-bday" onclick="navAddBday()">🎂 Birthday</button>
+
+    <!-- FAB speed-dial — sticky inside the scrollable home screen -->
+    <div class="fab-anchor">
+      <div class="fab-speed-dial" id="fabDial">
+        <div class="fab-option" id="fabOptBday">
+          <div class="fab-option-label">🎂 Birthday</div>
+          <button class="fab-option-btn bday" onclick="navAddBday()">🎂</button>
+        </div>
+        <div class="fab-option" id="fabOptContact">
+          <div class="fab-option-label">＋ Contact</div>
+          <button class="fab-option-btn contact" onclick="navAdd()">＋</button>
+        </div>
+        <button class="fab-main" id="fabMain" onclick="toggleFab()">＋</button>
+      </div>
     </div>
   </div>
+
+  <!-- Backdrop to close FAB when tapping outside -->
+  <div class="fab-backdrop" id="fabBackdrop" onclick="closeFab()"></div>
 
   <!-- ═══ SCREEN 1: PROFILE ═══ -->
   <div class="screen" id="s1">
@@ -282,6 +384,15 @@
       <button class="btn-secondary" onclick="nav(0)">Cancel</button>
 
       <!-- ── BACKUP SECTION ── -->
+      <div class="backup-heading">Notifications</div>
+
+      <div class="notif-card">
+        <div class="notif-card-title">🔔 Birthday Notifications</div>
+        <div class="notif-card-desc">Get a push notification on your iPhone when it's someone's birthday — even when the app is closed. Requires permission once.</div>
+        <button class="backup-btn backup-btn-notif" onclick="requestNotifPermission()">Enable Notifications</button>
+        <div class="notif-status" id="notifStatus"></div>
+      </div>
+
       <div class="backup-heading">Data &amp; Backup</div>
 
       <div class="backup-card">
@@ -458,6 +569,28 @@ function load(){
   }catch(e){}
 }
 
+// ── FAB SPEED DIAL ────────────────────────────────────────────────────────
+let fabOpen=false;
+function toggleFab(){
+  fabOpen=!fabOpen;
+  document.getElementById('fabMain').classList.toggle('open',fabOpen);
+  document.getElementById('fabBackdrop').classList.toggle('open',fabOpen);
+  document.getElementById('fabOptContact').classList.toggle('open',fabOpen);
+  document.getElementById('fabOptBday').classList.toggle('open',fabOpen);
+  // stagger the options slightly
+  if(fabOpen){
+    document.getElementById('fabOptContact').style.transitionDelay='0s';
+    document.getElementById('fabOptBday').style.transitionDelay='0.06s';
+  }
+}
+function closeFab(){
+  fabOpen=false;
+  document.getElementById('fabMain').classList.remove('open');
+  document.getElementById('fabBackdrop').classList.remove('open');
+  document.getElementById('fabOptContact').classList.remove('open');
+  document.getElementById('fabOptBday').classList.remove('open');
+}
+
 // ── NAVIGATION ────────────────────────────────────────────────────────────
 // Each screen is 1/6 of 600%-wide wrapper = exactly 100vw
 function nav(idx){
@@ -465,6 +598,7 @@ function nav(idx){
 }
 
 function navAdd(){
+  closeFab();
   document.getElementById('fi-name').value='';
   document.getElementById('fi-phone').value='';
   document.getElementById('fi-date').value='';
@@ -474,6 +608,7 @@ function navAdd(){
 }
 
 function navAddBday(){
+  closeFab();
   document.getElementById('bi-id').value='';
   document.getElementById('bi-name').value='';
   document.getElementById('bi-date').value='';
@@ -547,8 +682,8 @@ function render(){
   }else{
     const c=active[0],diff=daysDiff(c.dueDate);
     const oc=diff<0?'overdue':'';
-    const dl=diff<0?`⚠️ ${-diff} days overdue`:diff===0?'🔥 Due Today!':diff<=3?`⚡ Due ${fmt(c.dueDate)}`:`📅 Due ${fmt(c.dueDate)}`;
-    html+=`<div class="next-up-card"><div class="blob blob1"></div><div class="blob blob2"></div><div class="card-row"><div class="card-avatar" style="background:${colorFor(c.name)}">${initials(c.name)}</div><div class="card-info"><div class="card-name">${esc(c.name)}</div><div class="card-due ${oc}">${dl}</div>${c.phone?`<div class="card-phone-txt">${esc(c.phone)}</div>`:''}</div></div><div class="card-actions"><button class="action-btn btn-met" onclick="markMet('${c.id}')">✓ Mark as Met</button>${c.phone?`<a class="action-btn btn-call" href="tel:${esc(c.phone)}">📞 Call</a>`:''}${c.linkedin?`<a class="action-btn btn-li" href="${esc(c.linkedin)}" target="_blank">💼 LinkedIn</a>`:''}</div></div>`;
+    const dl=diff<0?`⚠️ ${-diff}d overdue`:diff===0?'🔥 Due Today!':diff<=3?`⚡ ${fmt(c.dueDate)}`:`📅 ${fmt(c.dueDate)}`;
+    html+=`<div class="next-up-card"><div class="blob blob1"></div><div class="blob blob2"></div><div class="card-row"><div class="card-avatar" style="background:${colorFor(c.name)}">${initials(c.name)}</div><div class="card-info"><div class="card-name">${esc(c.name)}</div><div class="card-due ${oc}">${dl}</div></div><div class="card-actions"><button class="card-icon-btn tick" onclick="markMet('${c.id}')" title="Mark as Met">✓</button><button class="card-icon-btn cross" onclick="cancelMeeting('${c.id}')" title="Cancel Meeting">✕</button></div></div></div>`;
   }
 
   // ── Birthday card ──
@@ -766,7 +901,7 @@ function deleteBirthday(){
 // ── BACKUP & RESET ────────────────────────────────────────────────────────
 function copyData(){
   const lines=[];
-  lines.push(`=== Circles Backup — ${new Date().toLocaleDateString('en-US',{dateStyle:'long'})} ===`);
+  lines.push(`=== Rolodex Backup — ${new Date().toLocaleDateString('en-US',{dateStyle:'long'})} ===`);
   lines.push(`Profile: ${state.profileName||'(not set)'}`);
   lines.push('');
 
