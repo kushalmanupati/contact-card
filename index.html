@@ -52,6 +52,30 @@
       background:var(--bg);
     }
 
+    /* Home screen is a flex column — nav + scrollable content + FAB footer */
+    #s0 {
+      overflow-y:hidden; /* the inner .home-scroll handles scrolling */
+      display:flex;
+      flex-direction:column;
+    }
+    .home-scroll {
+      flex:1;
+      overflow-y:auto;
+      -webkit-overflow-scrolling:touch;
+    }
+    /* FAB footer row — never scrolls, always pinned at bottom of s0 */
+    .fab-footer {
+      flex-shrink:0;
+      padding-bottom:calc(env(safe-area-inset-bottom,0px) + 16px);
+      padding-top:8px;
+      display:flex;
+      flex-direction:column;
+      align-items:flex-end;
+      padding-right:20px;
+      background:var(--bg);
+      /* NO position:fixed, NO z-index — just normal flex row at bottom */
+    }
+
     /* ── NAV BARS (sticky inside each screen, not fixed) ── */
     .nav-bar {
       display:flex; align-items:center; gap:10px;
@@ -93,26 +117,11 @@
     .nav-title { font-family:'Syne',sans-serif; font-size:20px; font-weight:800; }
 
     /* ── HOME SCREEN CONTENT ── */
-    .main { padding:18px 15px 110px; max-width:480px; margin:0 auto; }
+    .main { padding:18px 15px 20px; max-width:480px; margin:0 auto; }
 
-    /* ── FAB SPEED DIAL ──
-       Lives at the bottom of the home screen's scroll area.
-       position:sticky keeps it pinned at the bottom of the viewport
-       while you scroll. No position:fixed, no z-index stacking issues. */
-    .fab-anchor {
-      position:sticky;
-      bottom:calc(env(safe-area-inset-bottom,0px) + 20px);
-      height:0; /* takes no space in flow */
-      display:flex;
-      flex-direction:column;
-      align-items:flex-end;
-      padding-right:20px;
-      overflow:visible;
-    }
-
+    /* ── FAB SPEED DIAL ── */
     .fab-speed-dial {
       display:flex; flex-direction:column; align-items:flex-end; gap:12px;
-      /* options sit above the main button */
       margin-bottom:12px;
     }
 
@@ -132,7 +141,6 @@
       border-radius:20px; padding:8px 16px;
       font-size:14px; font-weight:700; color:var(--text);
       white-space:nowrap; cursor:pointer;
-      /* must be clickable */
       -webkit-user-select:none; user-select:none;
     }
     .fab-option-icon {
@@ -156,11 +164,12 @@
     }
     .fab-main.open { transform:rotate(45deg); }
 
-    /* ── Dim overlay when FAB open — sits behind options, above content ── */
+    /* Dim overlay — position:fixed is fine here because it has no children
+       and no interactive elements sit under it when it's open */
     #fabDimmer {
       display:none; position:fixed; inset:0;
       background:rgba(0,0,0,0.45);
-      /* no z-index — sits in normal stacking under FAB anchor */
+      z-index:1;
     }
     #fabDimmer.open { display:block; }
 
@@ -353,13 +362,17 @@
         <div class="profile-edit-icon">✎</div>
       </div>
     </div>
-    <div class="main" id="mainContent"></div>
 
-    <!-- Dimmer sits here, inside s0, before the sticky FAB anchor -->
+    <!-- Scrollable content area -->
+    <div class="home-scroll">
+      <div class="main" id="mainContent"></div>
+    </div>
+
+    <!-- Dimmer for when FAB is open — inside s0, below fab-footer in DOM -->
     <div id="fabDimmer" onclick="closeFab()"></div>
 
-    <!-- FAB speed-dial — sticky, lives at the bottom of the scroll area -->
-    <div class="fab-anchor">
+    <!-- FAB footer — always visible, never scrolls -->
+    <div class="fab-footer">
       <div class="fab-speed-dial" id="fabDial">
         <div class="fab-option" id="fabOptBday">
           <div class="fab-option-label" onclick="navAddBday()">🎂 Birthday</div>
@@ -702,7 +715,7 @@ function render(){
 
   html+=`<div class="section-label" style="margin-top:18px">Next Up</div>`;
   if(active.length===0){
-    html+=`<div class="next-up-card"><div class="blob blob1"></div><div class="blob blob2"></div><div class="empty-state">No upcoming meetings — tap Add Contact below!</div></div>`;
+    html+=`<div class="next-up-card"><div class="blob blob1"></div><div class="blob blob2"></div><div class="empty-state">No upcoming meetings — tap ＋ to add someone!</div></div>`;
   }else{
     const c=active[0],diff=daysDiff(c.dueDate);
     const oc=diff<0?'overdue':'';
