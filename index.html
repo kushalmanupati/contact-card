@@ -62,6 +62,14 @@ body{font-family:'Plus Jakarta Sans',sans-serif;color:var(--text);}
 }
 .tab-pane.active{display:block;}
 
+/* Home pane fills exactly — no scroll, flex column */
+#pane0{
+  overflow-y:hidden;
+  display:none;
+  flex-direction:column;
+}
+#pane0.active{display:flex;}
+
 /* ── BOTTOM TAB BAR ── */
 #tabBar{
   flex-shrink:0;
@@ -83,7 +91,40 @@ body{font-family:'Plus Jakarta Sans',sans-serif;color:var(--text);}
   background:linear-gradient(90deg,var(--violet),var(--cyan));border-radius:0 0 3px 3px;}
 
 /* ── HOME PANE ── */
-.home-wrap{padding:10px 14px 14px;max-width:480px;margin:0 auto;}
+.home-wrap{
+  padding:8px 14px 6px;
+  max-width:480px;width:100%;margin:0 auto;
+  flex:1;display:flex;flex-direction:column;
+  min-height:0;
+}
+.home-top{ flex-shrink:0; }
+/* Body = all remaining space, split evenly into 3 rows */
+.home-body{
+  flex:1;min-height:0;
+  display:flex;flex-direction:column;
+  gap:0;
+}
+.home-col{
+  flex:1;min-height:0;
+  display:flex;flex-direction:column;
+}
+.home-col-cards{
+  flex:1;min-height:0;
+  display:flex;flex-direction:column;
+  gap:5px;
+}
+/* each card in the meetings/birthday cols stretches equally */
+.home-col-cards .nu-card,
+.home-col-cards .bd-card{
+  flex:1;min-height:0;
+  margin-bottom:0;
+  display:flex;align-items:center;
+}
+.home-col-cards .nu-card .nu-row,
+.home-col-cards .bd-card .bd-row{ width:100%; }
+/* last met col contains the section label + card, card must grow */
+.lastmet-col{ flex:1;min-height:0;display:flex;flex-direction:column; }
+#lastMetSection{ flex:1;min-height:0;display:flex;flex-direction:column; }
 
 /* Progress bars */
 .pb{margin-bottom:6px;}
@@ -215,16 +256,20 @@ body{font-family:'Plus Jakarta Sans',sans-serif;color:var(--text);}
 .empty-c p{font-size:13px;line-height:1.7;}
 
 /* ── LAST MET CHART ── */
-.lm-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px 14px;margin-top:2px;}
-.lm-bars{display:flex;align-items:flex-end;gap:6px;height:64px;margin-bottom:8px;}
-.lm-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:0;}
-.lm-bar-wrap{width:100%;flex:1;display:flex;align-items:flex-end;}
+.lm-slbl-wrap{ flex-shrink:0; }
+.lm-card{
+  background:var(--card);border:1px solid var(--border);border-radius:14px;
+  padding:10px 14px 8px;
+  flex:1;display:flex;flex-direction:column;min-height:0;
+}
+.lm-bars{display:flex;align-items:flex-end;gap:6px;flex:1;min-height:0;margin-bottom:6px;}
+.lm-col{flex:1;display:flex;flex-direction:column;align-items:center;height:100%;}
+.lm-bar-wrap{width:100%;flex:1;display:flex;align-items:flex-end;min-height:0;}
 .lm-bar{
   width:100%;border-radius:5px 5px 0 0;
   min-height:3px;
   transition:height .9s cubic-bezier(.34,1.2,.64,1);
-  position:relative;
-  cursor:default;
+  position:relative;cursor:default;
 }
 .lm-bar:hover::after{
   content:attr(data-tip);
@@ -233,20 +278,19 @@ body{font-family:'Plus Jakarta Sans',sans-serif;color:var(--text);}
   border-radius:7px;padding:3px 8px;font-size:10px;font-weight:700;
   color:var(--text);white-space:nowrap;z-index:10;
 }
-.lm-count{font-family:'Syne',sans-serif;font-size:11px;font-weight:800;color:var(--text);margin-bottom:2px;line-height:1;}
+.lm-count{font-family:'Syne',sans-serif;font-size:11px;font-weight:800;color:var(--text);margin-bottom:2px;line-height:1;min-height:14px;}
 .lm-label{font-size:9px;color:var(--muted);text-align:center;line-height:1.2;white-space:nowrap;}
-.lm-note{font-size:10px;color:var(--muted);text-align:center;line-height:1.5;}
-.lm-people{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);}
+.lm-note{font-size:11px;color:var(--muted);text-align:center;line-height:1.5;flex:1;display:flex;align-items:center;justify-content:center;}
+.lm-people{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;padding-top:6px;border-top:1px solid var(--border);flex-shrink:0;}
 .lm-pip{
-  display:flex;align-items:center;gap:5px;
-  background:rgba(255,255,255,0.05);border:1px solid var(--border);
-  border-radius:20px;padding:3px 8px 3px 4px;
-  font-size:11px;font-weight:600;color:var(--muted);
+  display:flex;align-items:center;gap:4px;
+  background:rgba(255,255,255,.05);border:1px solid var(--border);
+  border-radius:20px;padding:3px 7px 3px 3px;
+  font-size:10px;font-weight:600;color:var(--muted);
 }
-.lm-pip-av{width:18px;height:18px;border-radius:5px;display:flex;align-items:center;justify-content:center;
-  font-family:'Syne',sans-serif;font-size:8px;font-weight:800;color:#fff;flex-shrink:0;}
-.lm-pip-name{white-space:nowrap;}
-.lm-pip-age{font-size:9px;color:var(--muted);margin-left:1px;}
+.lm-pip-av{width:16px;height:16px;border-radius:4px;display:flex;align-items:center;justify-content:center;
+  font-family:'Syne',sans-serif;font-size:7px;font-weight:800;color:#fff;flex-shrink:0;}
+.lm-pip-age{font-size:9px;color:var(--muted);}
 
 /* ── SLIDE-UP SHEETS ── */
 .sheet-bg{
@@ -330,29 +374,45 @@ body{font-family:'Plus Jakarta Sans',sans-serif;color:var(--text);}
     <!-- PANE 0: HOME -->
     <div class="tab-pane active" id="pane0">
       <div class="home-wrap">
-        <div class="pb met-bar">
-          <div class="pb-row">
-            <div class="pb-lbl"><span class="pb-dot"></span>People Met Overall</div>
-            <div class="pb-num" id="metNum">0 <span class="tot">/ 0</span></div>
+
+        <!-- FIXED TOP: progress bars + stat cards -->
+        <div class="home-top">
+          <div class="pb met-bar">
+            <div class="pb-row">
+              <div class="pb-lbl"><span class="pb-dot"></span>People Met Overall</div>
+              <div class="pb-num" id="metNum">0 <span class="tot">/ 0</span></div>
+            </div>
+            <div class="pb-track"><div class="pb-fill" id="metFill"></div></div>
           </div>
-          <div class="pb-track"><div class="pb-fill" id="metFill"></div></div>
-        </div>
-        <div class="stats-row">
-          <div class="stat-card pp"><div class="stat-val" id="sP30">0</div><div class="stat-lbl">Planned<br>last 30d</div></div>
-          <div class="stat-card mp"><div class="stat-val" id="sM30">0</div><div class="stat-lbl">Met<br>last 30d</div></div>
-          <div class="stat-card pf"><div class="stat-val" id="sN60">0</div><div class="stat-lbl">Planned<br>next 60d</div></div>
-        </div>
-        <div class="pb miss-bar">
-          <div class="pb-row">
-            <div class="pb-lbl"><span class="pb-dot"></span>Missed Meetings</div>
-            <div class="pb-num" id="missNum">0 <span class="tot">/ 0</span></div>
+          <div class="stats-row">
+            <div class="stat-card pp"><div class="stat-val" id="sP30">0</div><div class="stat-lbl">Planned<br>last 30d</div></div>
+            <div class="stat-card mp"><div class="stat-val" id="sM30">0</div><div class="stat-lbl">Met<br>last 30d</div></div>
+            <div class="stat-card pf"><div class="stat-val" id="sN60">0</div><div class="stat-lbl">Planned<br>next 60d</div></div>
           </div>
-          <div class="pb-track"><div class="pb-fill" id="missFill"></div></div>
+          <div class="pb miss-bar">
+            <div class="pb-row">
+              <div class="pb-lbl"><span class="pb-dot"></span>Missed Meetings</div>
+              <div class="pb-num" id="missNum">0 <span class="tot">/ 0</span></div>
+            </div>
+            <div class="pb-track"><div class="pb-fill" id="missFill"></div></div>
+          </div>
         </div>
-        <div class="slbl" style="margin-top:8px">Upcoming Meetings</div>
-        <div id="nuCard"></div>
-        <div id="bdCard"></div>
-        <div id="lastMetSection"></div>
+
+        <!-- FLEX GROW: meetings + birthdays + last met fill remaining space equally -->
+        <div class="home-body">
+          <div class="home-col meetings-col">
+            <div class="slbl">Upcoming Meetings</div>
+            <div id="nuCard" class="home-col-cards"></div>
+          </div>
+          <div class="home-col birthdays-col">
+            <div class="slbl">Upcoming Birthdays</div>
+            <div id="bdCard" class="home-col-cards"></div>
+          </div>
+          <div class="home-col lastmet-col">
+            <div id="lastMetSection"></div>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -668,18 +728,17 @@ function renderHome(){
     if(xf)xf.style.width=missPct+'%';
   },80));
 
-  // Next Up — show 2
+  // Next Up — show 2, no labels (labels in HTML)
   const active=state.contacts.filter(c=>!c.met).sort((a,b)=>new Date(a.dueDate)-new Date(b.dueDate));
   let nu='';
   if(active.length===0){
-    nu=`<div class="nu-card"><div class="b1 blob"></div><div class="b2 blob"></div><div class="nu-empty">No upcoming meetings — use the Meeting tab to add one</div></div>`;
+    nu=`<div class="nu-card" style="flex:1"><div class="b1 blob"></div><div class="b2 blob"></div><div class="nu-empty">No meetings — add via Meeting tab</div></div>`;
   }else{
-    const top=active.slice(0,2);
-    nu=top.map((c,i)=>{
+    nu=active.slice(0,2).map(c=>{
       const diff=daysDiff(c.dueDate);
       const oc=diff<0?'ov':'';
-      const dl=diff<0?`⚠️ ${-diff}d overdue`:diff===0?'🔥 Due Today!':diff<=3?`⚡ ${fmt(c.dueDate)}`:`📅 ${fmt(c.dueDate)}`;
-      return`<div class="nu-card"${i>0?' style="margin-top:0"':''}><div class="b1 blob"></div><div class="b2 blob"></div><div class="nu-row">
+      const dl=diff<0?`⚠️ ${-diff}d overdue`:diff===0?'🔥 Today!':diff<=3?`⚡ ${fmt(c.dueDate)}`:`📅 ${fmt(c.dueDate)}`;
+      return`<div class="nu-card"><div class="b1 blob"></div><div class="b2 blob"></div><div class="nu-row">
         <div class="nu-av" style="background:${colorFor(c.name)}">${initials(c.name)}</div>
         <div class="nu-info"><div class="nu-name">${esc(c.name)}</div><div class="nu-due ${oc}">${dl}</div></div>
         <div class="nu-acts">
@@ -690,7 +749,7 @@ function renderHome(){
   }
   document.getElementById('nuCard').innerHTML=nu;
 
-  // Birthday card
+  // Birthdays — no label (in HTML)
   document.getElementById('bdCard').innerHTML=nextBdayHtml();
 
   // Last Met chart
@@ -713,15 +772,14 @@ function bdayDaysUntil(ds){
   return -1;
 }
 function nextBdayHtml(){
-  if(!state.birthdays?.length)return'';
-  // Sort all with a daysUntil, pick top 2 upcoming
+  if(!state.birthdays?.length)return`<div class="bd-card" style="flex:1;opacity:.5"><div class="bd-row"><div class="bd-icon">🎂</div><div><div class="bd-name" style="font-size:12px;color:var(--muted)">No birthdays added yet</div></div></div></div>`;
   const sorted=state.birthdays
     .map(b=>({...b,d:bdayDaysUntil(b.date)}))
     .filter(b=>b.d>=0)
     .sort((a,b)=>a.d-b.d)
     .slice(0,2);
-  if(!sorted.length)return'';
-  const cards=sorted.map(b=>{
+  if(!sorted.length)return`<div class="bd-card" style="flex:1;opacity:.5"><div class="bd-row"><div class="bd-icon">🎂</div><div><div class="bd-name" style="font-size:12px;color:var(--muted)">No upcoming birthdays this year</div></div></div></div>`;
+  return sorted.map(b=>{
     const lbl=b.d===0?'🎉 Today!':b.d===1?'Tomorrow':`in ${b.d}d`;
     const raw=new Date(b.date);
     const md=raw.toLocaleDateString('en-US',{month:'short',day:'numeric'});
@@ -731,27 +789,16 @@ function nextBdayHtml(){
         <div><div class="bd-name">${esc(b.name)}</div><div class="bd-date">${md} · ${lbl}</div></div>
       </div></div>`;
   }).join('');
-  return`<div class="slbl" style="margin-top:6px">Upcoming Birthdays</div>${cards}`;
 }
 
 // ── LAST MET CHART ──────────────────────────────────────────────────────────
-// Only counts contacts where met=true AND no active (unmet) follow-up exists.
-// Buckets: <1m, 1–2m, 2–4m, 4–6m, 6m+
 function lastMetHtml(){
   const today=new Date();today.setHours(0,0,0,0);
-  // Build a set of names that have an active (unmet) follow-up planned
   const activeNames=new Set(state.contacts.filter(c=>!c.met).map(c=>c.name.trim().toLowerCase()));
-
-  // From met contacts, only take those whose name has NO active follow-up
   const metContacts=state.contacts.filter(c=>{
     if(!c.met||!c.metDate)return false;
     return !activeNames.has(c.name.trim().toLowerCase());
   });
-
-  if(metContacts.length===0){
-    return`<div class="slbl" style="margin-top:6px">Last Met</div>
-      <div class="lm-card"><div class="lm-note">Mark meetings as ✓ Met to see your history here</div></div>`;
-  }
 
   const BUCKETS=[
     {label:'<1m',  max:30,   color:'var(--teal)',   people:[]},
@@ -761,6 +808,10 @@ function lastMetHtml(){
     {label:'6m+',  max:99999,color:'var(--red)',     people:[]},
   ];
 
+  if(metContacts.length===0){
+    return`<div class="slbl">Last Met</div><div class="lm-card"><div class="lm-note">Mark meetings as ✓ Met to track your history</div></div>`;
+  }
+
   for(const c of metContacts){
     const md=new Date(c.metDate);md.setHours(0,0,0,0);
     const days=Math.round((today-md)/86400000);
@@ -769,9 +820,8 @@ function lastMetHtml(){
 
   const maxCount=Math.max(...BUCKETS.map(b=>b.people.length),1);
 
-  // Bar chart columns
   const bars=BUCKETS.map(b=>{
-    const h=b.people.length>0?Math.max(12,Math.round(b.people.length/maxCount*100)):0;
+    const h=b.people.length>0?Math.max(6,Math.round(b.people.length/maxCount*100)):0;
     const tip=`${b.people.length} person${b.people.length!==1?'s':''}`;
     return`<div class="lm-col">
       <div class="lm-count">${b.people.length||''}</div>
@@ -782,31 +832,28 @@ function lastMetHtml(){
     </div>`;
   }).join('');
 
-  // Pill list for the most stale bucket that has people (rightmost non-empty)
+  const labels=BUCKETS.map(b=>`<div class="lm-col"><div class="lm-label">${b.label}</div></div>`).join('');
+
   let stalest=null;
   for(let i=BUCKETS.length-1;i>=0;i--){if(BUCKETS[i].people.length>0){stalest=BUCKETS[i];break;}}
-
   let pills='';
-  if(stalest&&stalest.max>=90){// only show pills for 2m+ buckets — nudge to reconnect
-    const mo=Math.round(stalest.people[0].daysAgo/30);
+  if(stalest&&stalest.max>=90){
     pills=`<div class="lm-people">`+
       stalest.people.slice(0,6).map(p=>
         `<div class="lm-pip">
           <div class="lm-pip-av" style="background:${colorFor(p.name)}">${initials(p.name)}</div>
-          <span class="lm-pip-name">${esc(p.name)}</span>
+          <span>${esc(p.name)}</span>
           <span class="lm-pip-age">·${Math.round(p.daysAgo/30)}m</span>
         </div>`
       ).join('')+
-      (stalest.people.length>6?`<div class="lm-pip" style="color:var(--muted)">+${stalest.people.length-6} more</div>`:'')+
+      (stalest.people.length>6?`<div class="lm-pip">+${stalest.people.length-6} more</div>`:'')+
     `</div>`;
   }
 
-  const labels=BUCKETS.map(b=>`<div class="lm-col"><div style="height:0"></div><div class="lm-label">${b.label}</div></div>`).join('');
-
-  return`<div class="slbl" style="margin-top:6px">Last Met</div>
+  return`<div class="slbl">Last Met</div>
     <div class="lm-card">
       <div class="lm-bars">${bars}</div>
-      <div style="display:flex;gap:6px;">${labels}</div>
+      <div style="display:flex;gap:6px;flex-shrink:0">${labels}</div>
       ${pills}
     </div>`;
 }
