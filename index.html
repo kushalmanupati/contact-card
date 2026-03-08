@@ -214,6 +214,40 @@ body{font-family:'Plus Jakarta Sans',sans-serif;color:var(--text);}
 .empty-c .em{font-size:40px;margin-bottom:10px;display:block;}
 .empty-c p{font-size:13px;line-height:1.7;}
 
+/* ── LAST MET CHART ── */
+.lm-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px 14px;margin-top:2px;}
+.lm-bars{display:flex;align-items:flex-end;gap:6px;height:64px;margin-bottom:8px;}
+.lm-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:0;}
+.lm-bar-wrap{width:100%;flex:1;display:flex;align-items:flex-end;}
+.lm-bar{
+  width:100%;border-radius:5px 5px 0 0;
+  min-height:3px;
+  transition:height .9s cubic-bezier(.34,1.2,.64,1);
+  position:relative;
+  cursor:default;
+}
+.lm-bar:hover::after{
+  content:attr(data-tip);
+  position:absolute;bottom:calc(100% + 5px);left:50%;transform:translateX(-50%);
+  background:rgba(20,18,36,.95);border:1px solid var(--border);
+  border-radius:7px;padding:3px 8px;font-size:10px;font-weight:700;
+  color:var(--text);white-space:nowrap;z-index:10;
+}
+.lm-count{font-family:'Syne',sans-serif;font-size:11px;font-weight:800;color:var(--text);margin-bottom:2px;line-height:1;}
+.lm-label{font-size:9px;color:var(--muted);text-align:center;line-height:1.2;white-space:nowrap;}
+.lm-note{font-size:10px;color:var(--muted);text-align:center;line-height:1.5;}
+.lm-people{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);}
+.lm-pip{
+  display:flex;align-items:center;gap:5px;
+  background:rgba(255,255,255,0.05);border:1px solid var(--border);
+  border-radius:20px;padding:3px 8px 3px 4px;
+  font-size:11px;font-weight:600;color:var(--muted);
+}
+.lm-pip-av{width:18px;height:18px;border-radius:5px;display:flex;align-items:center;justify-content:center;
+  font-family:'Syne',sans-serif;font-size:8px;font-weight:800;color:#fff;flex-shrink:0;}
+.lm-pip-name{white-space:nowrap;}
+.lm-pip-age{font-size:9px;color:var(--muted);margin-left:1px;}
+
 /* ── SLIDE-UP SHEETS ── */
 .sheet-bg{
   position:fixed;inset:0;background:rgba(0,0,0,.6);
@@ -318,6 +352,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;color:var(--text);}
         <div class="slbl" style="margin-top:8px">Upcoming Meetings</div>
         <div id="nuCard"></div>
         <div id="bdCard"></div>
+        <div id="lastMetSection"></div>
       </div>
     </div>
 
@@ -657,6 +692,15 @@ function renderHome(){
 
   // Birthday card
   document.getElementById('bdCard').innerHTML=nextBdayHtml();
+
+  // Last Met chart
+  document.getElementById('lastMetSection').innerHTML=lastMetHtml();
+  // Animate bars after paint
+  requestAnimationFrame(()=>setTimeout(()=>{
+    document.querySelectorAll('.lm-bar[data-h]').forEach(el=>{
+      el.style.height=el.getAttribute('data-h')+'%';
+    });
+  },120));
 }
 
 // ── BIRTHDAY HELPERS ──────────────────────────────────────────────────────
@@ -690,7 +734,82 @@ function nextBdayHtml(){
   return`<div class="slbl" style="margin-top:6px">Upcoming Birthdays</div>${cards}`;
 }
 
-// ── BIRTHDAY BANNER ───────────────────────────────────────────────────────
+// ── LAST MET CHART ──────────────────────────────────────────────────────────
+// Only counts contacts where met=true AND no active (unmet) follow-up exists.
+// Buckets: <1m, 1–2m, 2–4m, 4–6m, 6m+
+function lastMetHtml(){
+  const today=new Date();today.setHours(0,0,0,0);
+  // Build a set of names that have an active (unmet) follow-up planned
+  const activeNames=new Set(state.contacts.filter(c=>!c.met).map(c=>c.name.trim().toLowerCase()));
+
+  // From met contacts, only take those whose name has NO active follow-up
+  const metContacts=state.contacts.filter(c=>{
+    if(!c.met||!c.metDate)return false;
+    return !activeNames.has(c.name.trim().toLowerCase());
+  });
+
+  if(metContacts.length===0){
+    return`<div class="slbl" style="margin-top:6px">Last Met</div>
+      <div class="lm-card"><div class="lm-note">Mark meetings as ✓ Met to see your history here</div></div>`;
+  }
+
+  const BUCKETS=[
+    {label:'<1m',  max:30,   color:'var(--teal)',   people:[]},
+    {label:'1–2m', max:60,   color:'var(--cyan)',   people:[]},
+    {label:'2–4m', max:120,  color:'var(--violet)', people:[]},
+    {label:'4–6m', max:180,  color:'var(--orange)', people:[]},
+    {label:'6m+',  max:99999,color:'var(--red)',     people:[]},
+  ];
+
+  for(const c of metContacts){
+    const md=new Date(c.metDate);md.setHours(0,0,0,0);
+    const days=Math.round((today-md)/86400000);
+    for(const b of BUCKETS){if(days<=b.max){b.people.push({...c,daysAgo:days});break;}}
+  }
+
+  const maxCount=Math.max(...BUCKETS.map(b=>b.people.length),1);
+
+  // Bar chart columns
+  const bars=BUCKETS.map(b=>{
+    const h=b.people.length>0?Math.max(12,Math.round(b.people.length/maxCount*100)):0;
+    const tip=`${b.people.length} person${b.people.length!==1?'s':''}`;
+    return`<div class="lm-col">
+      <div class="lm-count">${b.people.length||''}</div>
+      <div class="lm-bar-wrap">
+        <div class="lm-bar" data-h="${h}" data-tip="${tip}"
+          style="height:0%;background:${b.people.length?b.color:'rgba(255,255,255,0.06)'};"></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Pill list for the most stale bucket that has people (rightmost non-empty)
+  let stalest=null;
+  for(let i=BUCKETS.length-1;i>=0;i--){if(BUCKETS[i].people.length>0){stalest=BUCKETS[i];break;}}
+
+  let pills='';
+  if(stalest&&stalest.max>=90){// only show pills for 2m+ buckets — nudge to reconnect
+    const mo=Math.round(stalest.people[0].daysAgo/30);
+    pills=`<div class="lm-people">`+
+      stalest.people.slice(0,6).map(p=>
+        `<div class="lm-pip">
+          <div class="lm-pip-av" style="background:${colorFor(p.name)}">${initials(p.name)}</div>
+          <span class="lm-pip-name">${esc(p.name)}</span>
+          <span class="lm-pip-age">·${Math.round(p.daysAgo/30)}m</span>
+        </div>`
+      ).join('')+
+      (stalest.people.length>6?`<div class="lm-pip" style="color:var(--muted)">+${stalest.people.length-6} more</div>`:'')+
+    `</div>`;
+  }
+
+  const labels=BUCKETS.map(b=>`<div class="lm-col"><div style="height:0"></div><div class="lm-label">${b.label}</div></div>`).join('');
+
+  return`<div class="slbl" style="margin-top:6px">Last Met</div>
+    <div class="lm-card">
+      <div class="lm-bars">${bars}</div>
+      <div style="display:flex;gap:6px;">${labels}</div>
+      ${pills}
+    </div>`;
+}
 function checkBdayBanner(){
   for(const b of(state.birthdays||[])){
     if(bdayDaysUntil(b.date)===0){
