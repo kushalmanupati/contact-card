@@ -1,770 +1,784 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="theme-color" content="#0f0e17" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Rolodex" />
-  <link rel="manifest" href="manifest.json" />
-  <link rel="apple-touch-icon" href="icon-192.png" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
+  <meta name="theme-color" content="#0f0e17"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="Rolodex"/>
+  <link rel="manifest" href="manifest.json"/>
+  <link rel="apple-touch-icon" href="icon-192.png"/>
   <title>Rolodex</title>
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <style>
-    :root {
-      --bg:#0f0e17; --surface:#1a1828; --card:#22203a;
-      --border:rgba(255,255,255,0.08); --text:#f0eeff;
-      --muted:rgba(240,238,255,0.45);
-      --cyan:#00d4ff; --lime:#aaff5c; --orange:#ff7b35;
-      --violet:#b57bff; --pink:#ff5fa0; --yellow:#ffd166;
-      --teal:#06d6a0; --red:#ff4757;
-    }
-    * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+/* ── ROOT ── */
+:root{
+  --bg:#0f0e17;--surface:#1a1828;--card:#22203a;
+  --border:rgba(255,255,255,0.08);--text:#f0eeff;
+  --muted:rgba(240,238,255,0.4);
+  --cyan:#00d4ff;--lime:#aaff5c;--orange:#ff7b35;
+  --violet:#b57bff;--pink:#ff5fa0;--yellow:#ffd166;
+  --teal:#06d6a0;--red:#ff4757;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;background:var(--bg);}
+body{font-family:'Plus Jakarta Sans',sans-serif;color:var(--text);}
 
-    html { height:100%; }
-    body {
-      font-family:'Plus Jakarta Sans',sans-serif;
-      background:var(--bg); color:var(--text);
-      height:100%; overflow:hidden;
-      /* NO position:fixed anywhere. NO backdrop-filter. NO z-index stacking. */
-    }
+/* ── APP SHELL — flex column, fills screen exactly ── */
+#app{
+  display:flex;flex-direction:column;
+  height:100dvh; /* dynamic viewport height handles iOS chrome */
+  max-height:100vh;
+}
 
-    /* ── SCREEN STACK ──
-       All screens live side-by-side using translateX.
-       The wrapper slides to show the active screen.
-       This means NOTHING is position:fixed or position:absolute — 
-       iOS PWA touch events work perfectly on normal flow elements.
-    */
-    #screenWrap {
-      display:flex;
-      width:600%; /* 6 screens */
-      height:100%;
-      transition:transform 0.32s cubic-bezier(0.4,0,0.2,1);
-    }
+/* ── TOP BAR ── */
+#topBar{
+  flex-shrink:0;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:calc(env(safe-area-inset-top,0px) + 10px) 16px 10px;
+  background:var(--bg);
+  border-bottom:1px solid var(--border);
+}
+.app-logo{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;
+  background:linear-gradient(90deg,var(--cyan),var(--violet));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1;}
+.app-tagline{font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-top:1px;}
+.profile-chip{display:flex;align-items:center;gap:6px;
+  background:rgba(181,123,255,0.12);border:1px solid rgba(181,123,255,0.25);
+  border-radius:30px;padding:5px 12px 5px 6px;cursor:pointer;}
+.profile-avatar{width:24px;height:24px;border-radius:50%;
+  background:linear-gradient(135deg,var(--cyan),var(--violet));
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Syne',sans-serif;font-size:10px;font-weight:800;color:var(--bg);}
+.profile-name{font-size:12px;font-weight:700;color:var(--violet);white-space:nowrap;}
 
-    .screen {
-      width:16.6667%; /* each screen = 100vw (1/6 of 600%) */
-      height:100%;
-      overflow-y:auto;
-      -webkit-overflow-scrolling:touch;
-      flex-shrink:0;
-      background:var(--bg);
-    }
+/* ── SCROLLABLE MIDDLE ── */
+#tabContent{flex:1;overflow:hidden;position:relative;min-height:0;}
+.tab-pane{
+  position:absolute;inset:0;
+  overflow-y:auto;-webkit-overflow-scrolling:touch;
+  display:none;
+}
+.tab-pane.active{display:block;}
 
-    /* Home screen is a flex column — nav + scrollable content + FAB footer */
-    #s0 {
-      overflow-y:hidden; /* the inner .home-scroll handles scrolling */
-      display:flex;
-      flex-direction:column;
-    }
-    .home-scroll {
-      flex:1;
-      overflow-y:auto;
-      -webkit-overflow-scrolling:touch;
-    }
-    /* FAB footer row — never scrolls, always pinned at bottom of s0 */
-    .fab-footer {
-      flex-shrink:0;
-      padding-bottom:calc(env(safe-area-inset-bottom,0px) + 16px);
-      padding-top:8px;
-      display:flex;
-      flex-direction:column;
-      align-items:flex-end;
-      padding-right:20px;
-      background:var(--bg);
-      /* NO position:fixed, NO z-index — just normal flex row at bottom */
-    }
+/* ── BOTTOM TAB BAR ── */
+#tabBar{
+  flex-shrink:0;
+  display:grid;grid-template-columns:repeat(4,1fr);
+  background:var(--surface);
+  border-top:1px solid var(--border);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+.tab-btn{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:2px;padding:8px 4px 6px;
+  border:none;background:transparent;cursor:pointer;position:relative;
+}
+.tab-btn .ti{font-size:20px;line-height:1;transition:transform .15s;}
+.tab-btn .tl{font-size:10px;font-weight:700;color:var(--muted);transition:color .15s;letter-spacing:.2px;}
+.tab-btn.on .tl{color:var(--violet);}
+.tab-btn.on .ti{transform:scale(1.18);}
+.tab-btn.on::after{content:'';position:absolute;top:0;left:25%;width:50%;height:2px;
+  background:linear-gradient(90deg,var(--violet),var(--cyan));border-radius:0 0 3px 3px;}
 
-    /* ── NAV BARS (sticky inside each screen, not fixed) ── */
-    .nav-bar {
-      display:flex; align-items:center; gap:10px;
-      padding: calc(env(safe-area-inset-top,0px) + 14px) 18px 14px;
-      background:var(--bg);
-      border-bottom:1px solid var(--border);
-      position:sticky; top:0;
-      /* NO z-index, NO backdrop-filter */
-    }
+/* ── HOME PANE ── */
+.home-wrap{padding:12px 14px 16px;max-width:480px;margin:0 auto;}
 
-    .app-logo {
-      font-family:'Syne',sans-serif; font-size:24px; font-weight:800;
-      background:linear-gradient(90deg,var(--cyan),var(--violet));
-      -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
-    }
-    .app-tagline { font-size:10px; color:var(--muted); letter-spacing:1.6px; text-transform:uppercase; margin-top:1px; }
+/* Progress bars */
+.pb{margin-bottom:7px;}
+.pb-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
+.pb-lbl{display:flex;align-items:center;gap:5px;font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;}
+.pb-dot{width:6px;height:6px;border-radius:50%;}
+.met-bar .pb-lbl{color:var(--teal);}
+.met-bar .pb-dot{background:var(--teal);box-shadow:0 0 5px var(--teal);}
+.miss-bar .pb-lbl{color:var(--orange);}
+.miss-bar .pb-dot{background:var(--orange);box-shadow:0 0 5px var(--orange);}
+.pb-num{font-family:'Syne',sans-serif;font-size:13px;font-weight:800;}
+.met-bar .pb-num{color:var(--teal);}
+.miss-bar .pb-num{color:var(--orange);}
+.pb-num .tot{font-size:11px;font-weight:500;color:var(--muted);}
+.pb-track{height:5px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;}
+.pb-fill{height:100%;border-radius:3px;width:0%;transition:width 1.1s cubic-bezier(.34,1.2,.64,1);}
+.met-bar .pb-fill{background:linear-gradient(90deg,var(--teal),var(--cyan));}
+.miss-bar .pb-fill{background:linear-gradient(90deg,var(--red),var(--orange));}
 
-    .profile-chip {
-      margin-left:auto;
-      display:flex; align-items:center; gap:7px;
-      background:rgba(181,123,255,0.12); border:1px solid rgba(181,123,255,0.25);
-      border-radius:30px; padding:6px 12px 6px 8px; cursor:pointer;
-    }
-    .profile-avatar {
-      width:26px; height:26px; border-radius:50%;
-      background:linear-gradient(135deg,var(--cyan),var(--violet));
-      display:flex; align-items:center; justify-content:center;
-      font-family:'Syne',sans-serif; font-size:11px; font-weight:800; color:var(--bg);
-    }
-    .profile-name { font-size:13px; font-weight:700; color:var(--violet); white-space:nowrap; }
-    .profile-edit-icon { font-size:10px; color:var(--muted); }
+/* Stat cards row */
+.stats-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin:8px 0;}
+.stat-card{border-radius:14px;padding:10px 6px 8px;text-align:center;border:1px solid transparent;}
+.stat-card.pp{background:linear-gradient(150deg,rgba(255,95,160,.18),rgba(181,123,255,.07));border-color:rgba(255,95,160,.2);}
+.stat-card.mp{background:linear-gradient(150deg,rgba(170,255,92,.16),rgba(6,214,160,.07));border-color:rgba(170,255,92,.2);}
+.stat-card.pf{background:linear-gradient(150deg,rgba(0,212,255,.16),rgba(181,123,255,.07));border-color:rgba(0,212,255,.2);}
+.stat-val{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;line-height:1;margin-bottom:3px;}
+.pp .stat-val{color:var(--pink);}
+.mp .stat-val{color:var(--lime);}
+.pf .stat-val{color:var(--cyan);}
+.stat-lbl{font-size:9px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;line-height:1.3;}
 
-    .back-btn {
-      width:36px; height:36px; border-radius:12px;
-      background:rgba(255,255,255,0.07); border:none;
-      color:var(--text); font-size:20px; cursor:pointer;
-      display:flex; align-items:center; justify-content:center;
-    }
-    .nav-title { font-family:'Syne',sans-serif; font-size:20px; font-weight:800; }
+/* Section label */
+.slbl{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);
+  display:flex;align-items:center;gap:7px;margin:10px 0 7px;}
+.slbl::after{content:'';flex:1;height:1px;background:var(--border);}
 
-    /* ── HOME SCREEN CONTENT ── */
-    .main { padding:18px 15px 20px; max-width:480px; margin:0 auto; }
+/* Next Up card */
+.nu-card{border-radius:16px;padding:11px 14px;margin-bottom:8px;position:relative;overflow:hidden;
+  background:linear-gradient(140deg,#1e1c38,#28204a);border:1px solid rgba(181,123,255,.2);}
+.blob{position:absolute;border-radius:50%;pointer-events:none;}
+.b1{top:-35px;right:-35px;width:90px;height:90px;background:radial-gradient(circle,rgba(181,123,255,.22),transparent 70%);}
+.b2{bottom:-25px;left:-25px;width:75px;height:75px;background:radial-gradient(circle,rgba(0,212,255,.13),transparent 70%);}
+.nu-empty{color:var(--muted);font-size:12px;text-align:center;padding:3px 0;position:relative;}
+.nu-row{display:flex;align-items:center;gap:10px;position:relative;}
+.nu-av{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;
+  font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:#fff;flex-shrink:0;}
+.nu-info{flex:1;min-width:0;}
+.nu-name{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.nu-due{font-size:10px;font-weight:600;color:var(--violet);}
+.nu-due.ov{color:var(--red);}
+.nu-acts{display:flex;gap:6px;flex-shrink:0;}
+.ic-btn{width:34px;height:34px;border-radius:10px;border:none;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;}
+.ic-btn.tick{background:rgba(6,214,160,.15);color:var(--teal);}
+.ic-btn.cross{background:rgba(255,71,87,.12);color:var(--red);}
 
-    /* ── FAB SPEED DIAL ── */
-    .fab-speed-dial {
-      display:flex; flex-direction:column; align-items:flex-end; gap:12px;
-      margin-bottom:12px;
-    }
+/* Birthday card */
+.bd-card{border-radius:16px;padding:10px 14px;margin-bottom:6px;
+  background:linear-gradient(140deg,#1a1e2e,#22182e);border:1px solid rgba(255,209,102,.25);cursor:pointer;}
+.bd-row{display:flex;align-items:center;gap:10px;}
+.bd-icon{width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,var(--yellow),var(--orange));
+  display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.bd-name{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.bd-date{font-size:10px;font-weight:600;color:var(--yellow);margin-top:1px;}
 
-    .fab-option {
-      display:flex; align-items:center; gap:10px;
-      opacity:0; transform:translateY(8px);
-      transition:opacity 0.18s ease, transform 0.18s ease;
-      pointer-events:none;
-      will-change:opacity,transform;
-    }
-    .fab-option.open {
-      opacity:1; transform:translateY(0);
-      pointer-events:auto;
-    }
-    .fab-option-label {
-      background:#1e1c33; border:1px solid rgba(255,255,255,0.12);
-      border-radius:20px; padding:8px 16px;
-      font-size:14px; font-weight:700; color:var(--text);
-      white-space:nowrap; cursor:pointer;
-      -webkit-user-select:none; user-select:none;
-    }
-    .fab-option-icon {
-      width:46px; height:46px; border-radius:14px; border:none;
-      display:flex; align-items:center; justify-content:center;
-      font-size:20px; cursor:pointer; flex-shrink:0;
-      -webkit-user-select:none; user-select:none;
-    }
-    .fab-option-icon.contact { background:linear-gradient(135deg,var(--cyan),var(--violet)); color:#000; }
-    .fab-option-icon.bday    { background:linear-gradient(135deg,var(--yellow),var(--orange)); }
+/* ── FORM PANE (Meeting + Birthday tabs share same styling) ── */
+.form-wrap{padding:16px 16px 32px;max-width:480px;margin:0 auto;}
+.form-head{margin-bottom:18px;}
+.form-head-title{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:2px;}
+.form-head-sub{font-size:12px;color:var(--muted);}
+.fgrp{margin-bottom:14px;}
+.flbl{display:block;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+.finp{
+  display:block;width:100%;padding:14px 15px;
+  background:var(--card);border:1.5px solid var(--border);
+  border-radius:13px;font-family:'Plus Jakarta Sans',sans-serif;
+  font-size:16px;color:var(--text);
+  -webkit-appearance:none;appearance:none;outline:none;
+}
+.finp:focus{border-color:var(--violet);}
+.finp::placeholder{color:rgba(240,238,255,.2);}
+.finp[type=date]{color-scheme:dark;}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.btn-p{display:block;width:100%;padding:15px;background:linear-gradient(135deg,var(--violet),var(--cyan));border:none;
+  border-radius:13px;font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:700;color:var(--bg);cursor:pointer;margin-bottom:10px;}
+.btn-s{display:block;width:100%;padding:13px;background:transparent;border:1.5px solid var(--border);
+  border-radius:13px;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer;margin-bottom:10px;}
+.btn-d{display:block;width:100%;padding:13px;background:rgba(255,71,87,.08);border:1.5px solid rgba(255,71,87,.2);
+  border-radius:13px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:700;color:var(--red);cursor:pointer;margin-bottom:10px;}
+.btn-ok{display:block;width:100%;padding:13px;background:rgba(6,214,160,.1);border:1.5px solid rgba(6,214,160,.2);
+  border-radius:13px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:700;color:var(--teal);cursor:pointer;margin-bottom:10px;}
+.success-msg{text-align:center;padding:14px;font-size:13px;font-weight:700;color:var(--teal);display:none;}
 
-    .fab-main {
-      width:58px; height:58px; border-radius:18px; border:none;
-      background:linear-gradient(135deg,var(--violet),var(--cyan));
-      color:#fff; font-size:28px; line-height:1; cursor:pointer;
-      display:flex; align-items:center; justify-content:center;
-      box-shadow:0 6px 28px rgba(0,212,255,0.4);
-      transition:transform 0.22s cubic-bezier(0.34,1.56,0.64,1);
-      -webkit-user-select:none; user-select:none;
-      flex-shrink:0;
-    }
-    .fab-main.open { transform:rotate(45deg); }
+/* ── CONTACTS PANE ── */
+.contacts-pane{display:flex;flex-direction:column;height:100%;}
+.filter-row{flex-shrink:0;display:flex;gap:8px;padding:12px 16px 8px;border-bottom:1px solid var(--border);}
+.fc{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;
+  border:1.5px solid var(--border);background:transparent;color:var(--muted);}
+.fc.on{background:rgba(181,123,255,.15);border-color:rgba(181,123,255,.4);color:var(--violet);}
+.c-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px 14px 16px;max-width:480px;width:100%;margin:0 auto;}
+.c-list{display:flex;flex-direction:column;gap:7px;}
+.ci{background:var(--card);border-radius:14px;padding:11px 13px;display:flex;flex-wrap:wrap;align-items:center;
+  gap:10px;border:1px solid var(--border);cursor:pointer;}
+.ci.ov{background:rgba(255,71,87,.07);border-color:rgba(255,71,87,.25);}
+.ci.done{opacity:.45;}
+.ci-av{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+  font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:#fff;flex-shrink:0;}
+.ci-info{flex:1;min-width:0;}
+.ci-name{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ci-name.thru{text-decoration:line-through;}
+.ci-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+.ci-right{text-align:right;flex-shrink:0;}
+.dbadge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;}
+.dbadge.ov{background:rgba(255,71,87,.14);color:var(--red);}
+.dbadge.sn{background:rgba(255,209,102,.14);color:var(--yellow);}
+.dbadge.up{background:rgba(0,212,255,.11);color:var(--cyan);}
+.dbadge.mt{background:rgba(6,214,160,.11);color:var(--teal);}
+.dbadge.bd{background:rgba(255,209,102,.14);color:var(--yellow);}
+.dlbl{font-size:9px;color:var(--muted);margin-top:2px;display:block;text-align:right;}
+.act-row{display:flex;gap:5px;width:100%;padding-top:7px;border-top:1px solid var(--border);margin-top:-2px;}
+.ab{flex:1;padding:7px 4px;border-radius:9px;border:none;font-family:'Plus Jakarta Sans',sans-serif;font-size:10px;font-weight:700;cursor:pointer;}
+.ab-rs{background:rgba(181,123,255,.12);color:var(--violet);}
+.ab-cl{background:rgba(255,71,87,.12);color:var(--red);}
+.ab-ed{background:rgba(255,255,255,.06);color:var(--muted);}
+.divlbl{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);
+  margin:12px 0 7px;display:flex;align-items:center;gap:7px;}
+.divlbl::after{content:'';flex:1;height:1px;background:var(--border);}
+.empty-c{text-align:center;padding:40px 20px;color:var(--muted);}
+.empty-c .em{font-size:40px;margin-bottom:10px;display:block;}
+.empty-c p{font-size:13px;line-height:1.7;}
 
-    /* Dim overlay — position:fixed is fine here because it has no children
-       and no interactive elements sit under it when it's open */
-    #fabDimmer {
-      display:none; position:fixed; inset:0;
-      background:rgba(0,0,0,0.45);
-      z-index:1;
-    }
-    #fabDimmer.open { display:block; }
+/* ── SLIDE-UP SHEETS ── */
+.sheet-bg{
+  position:fixed;inset:0;background:rgba(0,0,0,.6);
+  display:none;align-items:flex-end;z-index:100;
+}
+.sheet-bg.open{display:flex;}
+.sheet{
+  background:var(--surface);border-radius:22px 22px 0 0;width:100%;
+  max-height:90vh;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  padding:0 18px calc(env(safe-area-inset-bottom,0px)+20px);
+}
+.sheet-handle{width:36px;height:4px;border-radius:2px;background:rgba(255,255,255,.18);margin:12px auto 16px;}
+.sheet-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:18px;}
+.shift-row{display:flex;gap:8px;margin:8px 0 14px;}
+.shift-btn{flex:1;padding:9px 4px;background:rgba(181,123,255,.1);border:1px solid rgba(181,123,255,.2);
+  border-radius:10px;color:var(--violet);font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;}
+.ro-banner{background:rgba(6,214,160,.1);border:1px solid rgba(6,214,160,.2);border-radius:11px;
+  padding:10px 14px;font-size:12px;color:var(--teal);margin-bottom:14px;text-align:center;font-weight:700;}
 
-    /* ── PROGRESS BARS ── */
-    .pb-strip { margin-bottom:10px; }
-    .pb-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:7px; }
-    .pb-label { display:flex; align-items:center; gap:7px; font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; }
-    .met-bar .pb-label { color:var(--teal); }
-    .missed-bar .pb-label { color:var(--orange); }
-    .pb-dot { width:7px; height:7px; border-radius:50%; }
-    .met-bar .pb-dot { background:var(--teal); box-shadow:0 0 8px var(--teal); }
-    .missed-bar .pb-dot { background:var(--orange); box-shadow:0 0 8px var(--orange); }
-    .pb-nums { font-family:'Syne',sans-serif; font-size:16px; font-weight:800; }
-    .met-bar .pb-nums { color:var(--teal); }
-    .missed-bar .pb-nums { color:var(--orange); }
-    .pb-nums .of-total { font-size:12px; font-weight:500; color:var(--muted); }
-    .pb-track { height:7px; background:rgba(255,255,255,0.07); border-radius:4px; overflow:hidden; }
-    .pb-fill { height:100%; border-radius:4px; width:0%; transition:width 1.1s cubic-bezier(0.34,1.2,0.64,1); }
-    .met-bar .pb-fill { background:linear-gradient(90deg,var(--teal),var(--cyan)); }
-    .missed-bar .pb-fill { background:linear-gradient(90deg,var(--red),var(--orange)); }
+/* ── BIRTHDAY BANNER ── */
+#bdayBanner{display:none;position:fixed;inset:0;background:rgba(10,9,20,.96);
+  align-items:center;justify-content:center;text-align:center;padding:30px;z-index:999;}
+#bdayBanner.show{display:flex;flex-direction:column;}
+.bb-emoji{font-size:72px;margin-bottom:16px;animation:pop .5s cubic-bezier(.34,1.56,.64,1);}
+@keyframes pop{from{transform:scale(0) rotate(-20deg);opacity:0}to{transform:scale(1) rotate(0);opacity:1}}
+.bb-title{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:var(--yellow);margin-bottom:8px;}
+.bb-name{font-family:'Syne',sans-serif;font-size:34px;font-weight:800;margin-bottom:8px;
+  background:linear-gradient(90deg,var(--yellow),var(--orange),var(--pink));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.bb-sub{font-size:14px;color:var(--muted);margin-bottom:34px;line-height:1.6;}
+.bb-btn{padding:15px 44px;background:linear-gradient(135deg,var(--yellow),var(--orange));border:none;
+  border-radius:16px;font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:700;color:var(--bg);cursor:pointer;}
+.confetti{position:absolute;width:8px;height:8px;border-radius:2px;animation:fall linear forwards;pointer-events:none;}
+@keyframes fall{0%{transform:translateY(-20px) rotate(0);opacity:1}100%{transform:translateY(110vh) rotate(720deg);opacity:0}}
 
-    /* ── DASHBOARD ── */
-    .dashboard { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:10px; }
-    .stat-card { border-radius:18px; padding:14px 10px 12px; text-align:center; border:1px solid transparent; }
-    .stat-card.planned-past { background:linear-gradient(150deg,rgba(255,95,160,0.18),rgba(181,123,255,0.08)); border-color:rgba(255,95,160,0.2); }
-    .stat-card.met-past { background:linear-gradient(150deg,rgba(170,255,92,0.16),rgba(6,214,160,0.07)); border-color:rgba(170,255,92,0.2); }
-    .stat-card.planned-future { background:linear-gradient(150deg,rgba(0,212,255,0.16),rgba(181,123,255,0.07)); border-color:rgba(0,212,255,0.2); }
-    .stat-value { font-family:'Syne',sans-serif; font-size:32px; font-weight:800; line-height:1; margin-bottom:5px; }
-    .planned-past .stat-value { color:var(--pink); }
-    .met-past .stat-value { color:var(--lime); }
-    .planned-future .stat-value { color:var(--cyan); }
-    .stat-label { font-size:10px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.3px; line-height:1.35; }
-
-    /* ── SECTION LABELS ── */
-    .section-label { font-size:10px; font-weight:700; letter-spacing:2.5px; text-transform:uppercase; color:var(--muted); margin-bottom:10px; display:flex; align-items:center; gap:8px; }
-    .section-label::after { content:''; flex:1; height:1px; background:var(--border); }
-
-    /* ── NEXT UP CARD (compact — ~50% shorter than before) ── */
-    .next-up-card { border-radius:18px; padding:12px 16px; margin-bottom:10px; position:relative; overflow:hidden; background:linear-gradient(140deg,#1e1c38,#28204a); border:1px solid rgba(181,123,255,0.2); }
-    .blob { position:absolute; border-radius:50%; pointer-events:none; }
-    .blob1 { top:-40px; right:-40px; width:110px; height:110px; background:radial-gradient(circle,rgba(181,123,255,0.22),transparent 70%); }
-    .blob2 { bottom:-30px; left:-30px; width:90px; height:90px; background:radial-gradient(circle,rgba(0,212,255,0.13),transparent 70%); }
-    .empty-state { color:var(--muted); font-size:13px; text-align:center; padding:4px 0; position:relative; }
-    .card-row { display:flex; align-items:center; gap:12px; position:relative; }
-    .card-avatar { width:42px; height:42px; border-radius:13px; display:flex; align-items:center; justify-content:center; font-family:'Syne',sans-serif; font-size:16px; font-weight:800; color:#fff; flex-shrink:0; }
-    .card-info { flex:1; min-width:0; }
-    .card-name { font-family:'Syne',sans-serif; font-size:17px; font-weight:700; color:var(--text); margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .card-due { font-size:11px; font-weight:600; color:var(--violet); }
-    .card-due.overdue { color:var(--red); }
-    .card-actions { display:flex; gap:7px; align-items:center; flex-shrink:0; }
-    .card-icon-btn { width:38px; height:38px; border-radius:12px; border:none; display:flex; align-items:center; justify-content:center; font-size:18px; cursor:pointer; flex-shrink:0; }
-    .card-icon-btn.tick  { background:rgba(6,214,160,0.15); color:var(--teal); }
-    .card-icon-btn.cross { background:rgba(255,71,87,0.12); color:var(--red); }
-    .btn-call { background:rgba(255,255,255,0.08); color:var(--text); border:1px solid rgba(255,255,255,0.12); }
-    .btn-li { background:rgba(0,212,255,0.12); color:var(--cyan); border:1px solid rgba(0,212,255,0.18); }
-
-    /* ── BIRTHDAY CARD ── */
-    .bday-card { border-radius:18px; padding:12px 16px; margin-bottom:18px; position:relative; overflow:hidden; background:linear-gradient(140deg,#1a1e2e,#22182e); border:1px solid rgba(255,209,102,0.25); }
-    .bday-inner { display:flex; align-items:center; gap:12px; position:relative; }
-    .bday-icon { width:42px; height:42px; border-radius:13px; background:linear-gradient(135deg,var(--yellow),var(--orange)); display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; }
-    .bday-info { flex:1; min-width:0; }
-    .bday-name { font-family:'Syne',sans-serif; font-size:17px; font-weight:700; color:var(--text); margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .bday-date { font-size:11px; font-weight:600; color:var(--yellow); }
-
-    /* ── CONTACT LIST ── */
-    .contacts-list { display:flex; flex-direction:column; gap:8px; }
-    .contact-item { background:var(--card); border-radius:16px; padding:13px 15px; display:flex; flex-wrap:wrap; align-items:center; gap:12px; border:1px solid var(--border); cursor:pointer; }
-    .contact-item.overdue { background:rgba(255,71,87,0.07); border-color:rgba(255,71,87,0.25); }
-    .contact-item.met { opacity:0.45; }
-    .list-avatar { width:46px; height:46px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-family:'Syne',sans-serif; font-size:16px; font-weight:800; color:#fff; flex-shrink:0; }
-    .list-info { flex:1; min-width:0; }
-    .list-name { font-weight:700; font-size:15px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .list-name.met-strike { text-decoration:line-through; }
-    .list-sub { font-size:12px; color:var(--muted); margin-top:2px; }
-    .list-date { text-align:right; flex-shrink:0; }
-    .date-badge { display:inline-block; padding:4px 10px; border-radius:20px; font-size:11px; font-weight:700; }
-    .date-badge.overdue { background:rgba(255,71,87,0.14); color:var(--red); }
-    .date-badge.soon { background:rgba(255,209,102,0.14); color:var(--yellow); }
-    .date-badge.upcoming { background:rgba(0,212,255,0.11); color:var(--cyan); }
-    .date-badge.met { background:rgba(6,214,160,0.11); color:var(--teal); }
-    .days-label { font-size:10px; color:var(--muted); margin-top:3px; display:block; text-align:right; }
-    .item-actions { display:flex; gap:6px; width:100%; padding-top:8px; border-top:1px solid var(--border); margin-top:-4px; }
-    .item-act-btn { flex:1; padding:8px 4px; border-radius:10px; border:none; font-family:'Plus Jakarta Sans',sans-serif; font-size:11px; font-weight:700; cursor:pointer; }
-    .iab-later { background:rgba(181,123,255,0.12); color:var(--violet); }
-    .iab-cancel { background:rgba(255,71,87,0.12); color:var(--red); }
-    .iab-edit { background:rgba(255,255,255,0.06); color:var(--muted); }
-    .divider-label { font-size:10px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); margin:16px 0 8px; display:flex; align-items:center; gap:8px; }
-    .divider-label::after { content:''; flex:1; height:1px; background:var(--border); }
-    .empty-full { text-align:center; padding:40px 20px; color:var(--muted); }
-    .empty-full .emoji { font-size:44px; margin-bottom:12px; display:block; }
-    .empty-full p { font-size:14px; line-height:1.7; }
-
-    /* ── FORM SCREENS ── */
-    .form-body { padding:24px 18px 60px; max-width:480px; margin:0 auto; }
-    .form-group { margin-bottom:18px; }
-    .form-label { display:block; font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--muted); margin-bottom:8px; }
-    .form-input {
-      display:block; width:100%; padding:15px 16px;
-      background:var(--card); border:1.5px solid var(--border);
-      border-radius:14px; font-family:'Plus Jakarta Sans',sans-serif;
-      font-size:16px; color:var(--text);
-      -webkit-appearance:none; appearance:none;
-      outline:none;
-    }
-    .form-input:focus { border-color:var(--violet); }
-    .form-input::placeholder { color:rgba(240,238,255,0.2); }
-    .form-input[type=date] { color-scheme:dark; }
-    .form-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-    .btn-primary { display:block; width:100%; padding:16px; background:linear-gradient(135deg,var(--violet),var(--cyan)); border:none; border-radius:14px; font-family:'Plus Jakarta Sans',sans-serif; font-size:16px; font-weight:700; color:var(--bg); cursor:pointer; margin-bottom:12px; }
-    .btn-secondary { display:block; width:100%; padding:14px; background:transparent; border:1.5px solid var(--border); border-radius:14px; font-family:'Plus Jakarta Sans',sans-serif; font-size:15px; font-weight:600; color:var(--muted); cursor:pointer; margin-bottom:12px; }
-    .btn-danger { display:block; width:100%; padding:14px; background:rgba(255,71,87,0.08); border:1.5px solid rgba(255,71,87,0.2); border-radius:14px; font-family:'Plus Jakarta Sans',sans-serif; font-size:14px; font-weight:700; color:var(--red); cursor:pointer; margin-bottom:12px; }
-    .btn-success { display:block; width:100%; padding:14px; background:rgba(6,214,160,0.1); border:1.5px solid rgba(6,214,160,0.2); border-radius:14px; font-family:'Plus Jakarta Sans',sans-serif; font-size:14px; font-weight:700; color:var(--teal); cursor:pointer; margin-bottom:12px; }
-    .readonly-banner { background:rgba(6,214,160,0.1); border:1px solid rgba(6,214,160,0.2); border-radius:12px; padding:12px 16px; font-size:13px; color:var(--teal); margin-bottom:18px; text-align:center; font-weight:700; }
-    .shift-btns { display:flex; gap:8px; margin-top:8px; margin-bottom:16px; }
-    .shift-btn { flex:1; padding:9px 4px; background:rgba(181,123,255,0.1); border:1px solid rgba(181,123,255,0.2); border-radius:10px; color:var(--violet); font-family:'Plus Jakarta Sans',sans-serif; font-size:12px; font-weight:700; cursor:pointer; }
-
-    /* ── BACKUP SECTION ── */
-    .backup-heading { font-size:10px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin:28px 0 14px; display:flex; align-items:center; gap:8px; }
-    .backup-heading::after { content:''; flex:1; height:1px; background:var(--border); }
-    .backup-card { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:16px; margin-bottom:12px; }
-    .backup-card-title { font-size:14px; font-weight:700; color:var(--text); margin-bottom:6px; }
-    .backup-card-desc { font-size:12px; color:var(--muted); line-height:1.6; margin-bottom:14px; }
-    .backup-btn { display:block; width:100%; padding:13px; border-radius:12px; border:none; font-family:'Plus Jakarta Sans',sans-serif; font-size:14px; font-weight:700; cursor:pointer; }
-    .backup-btn-copy  { background:rgba(0,212,255,0.1); color:var(--cyan); border:1px solid rgba(0,212,255,0.2); }
-    .backup-btn-restore { background:rgba(181,123,255,0.1); color:var(--violet); border:1px solid rgba(181,123,255,0.2); }
-    .backup-btn-reset { background:rgba(255,71,87,0.08); color:var(--red); border:1px solid rgba(255,71,87,0.2); }
-
-    /* ── NOTIFICATION PERMISSION CARD ── */
-    .notif-card { background:linear-gradient(135deg,rgba(255,209,102,0.08),rgba(255,123,53,0.06)); border:1px solid rgba(255,209,102,0.2); border-radius:16px; padding:16px; margin-bottom:12px; }
-    .notif-card-title { font-size:14px; font-weight:700; color:var(--yellow); margin-bottom:6px; }
-    .notif-card-desc { font-size:12px; color:var(--muted); line-height:1.6; margin-bottom:14px; }
-    .notif-status { font-size:12px; font-weight:600; margin-top:10px; text-align:center; }
-    .notif-status.granted { color:var(--teal); }
-    .notif-status.denied  { color:var(--red); }
-    .backup-btn-notif { background:rgba(255,209,102,0.1); color:var(--yellow); border:1px solid rgba(255,209,102,0.25); }
-
-    /* ── BIRTHDAY BANNER OVERLAY ──
-       This one IS position:fixed but it's full-screen and the TOP layer —
-       no other content underneath it is interactive while it shows,
-       so iOS touch blocking is fine here.
-    */
-    #bdayBanner {
-      display:none;
-      position:fixed; inset:0;
-      background:rgba(10,9,20,0.96);
-      align-items:center; justify-content:center;
-      text-align:center; padding:30px;
-      /* show above everything */
-      z-index:999;
-    }
-    #bdayBanner.show { display:flex; flex-direction:column; }
-    .bday-banner-emoji { font-size:72px; margin-bottom:16px; animation:bdayPop 0.5s cubic-bezier(0.34,1.56,0.64,1); }
-    @keyframes bdayPop { from{transform:scale(0) rotate(-20deg);opacity:0} to{transform:scale(1) rotate(0);opacity:1} }
-    .bday-banner-title { font-family:'Syne',sans-serif; font-size:28px; font-weight:800; color:var(--yellow); margin-bottom:8px; }
-    .bday-banner-name  { font-family:'Syne',sans-serif; font-size:36px; font-weight:800; margin-bottom:8px;
-      background:linear-gradient(90deg,var(--yellow),var(--orange),var(--pink));
-      -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
-    .bday-banner-sub   { font-size:15px; color:var(--muted); margin-bottom:36px; line-height:1.6; }
-    .bday-banner-btn   { padding:16px 48px; background:linear-gradient(135deg,var(--yellow),var(--orange)); border:none; border-radius:18px; font-family:'Plus Jakarta Sans',sans-serif; font-size:16px; font-weight:700; color:var(--bg); cursor:pointer; }
-
-    /* confetti dots */
-    .confetti { position:absolute; width:8px; height:8px; border-radius:2px; animation:fall linear forwards; pointer-events:none; }
-    @keyframes fall { 0%{transform:translateY(-20px) rotate(0deg);opacity:1} 100%{transform:translateY(110vh) rotate(720deg);opacity:0} }
-  </style>
+/* ── PROFILE SHEET EXTRAS ── */
+.bkp-head{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);
+  margin:20px 0 10px;display:flex;align-items:center;gap:8px;}
+.bkp-head::after{content:'';flex:1;height:1px;background:var(--border);}
+.bkp-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px;}
+.bkp-card-t{font-size:13px;font-weight:700;margin-bottom:5px;}
+.bkp-card-d{font-size:11px;color:var(--muted);line-height:1.6;margin-bottom:11px;}
+.bkp-btn{display:block;width:100%;padding:12px;border-radius:11px;border:none;
+  font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;}
+.bb-copy{background:rgba(0,212,255,.1);color:var(--cyan);border:1px solid rgba(0,212,255,.2);}
+.bb-restore{background:rgba(181,123,255,.1);color:var(--violet);border:1px solid rgba(181,123,255,.2);}
+.bb-reset{background:rgba(255,71,87,.08);color:var(--red);border:1px solid rgba(255,71,87,.2);}
+</style>
 </head>
 <body>
 
-<!-- ── BIRTHDAY BANNER (full-screen, shown on top when it's someone's bday) ── -->
+<!-- ── BIRTHDAY BANNER ── -->
 <div id="bdayBanner">
-  <div id="bdayConfettiLayer" style="position:absolute;inset:0;overflow:hidden;pointer-events:none"></div>
-  <div class="bday-banner-emoji">🎂</div>
-  <div class="bday-banner-title">Happy Birthday!</div>
-  <div class="bday-banner-name" id="bdayBannerName"></div>
-  <div class="bday-banner-sub" id="bdayBannerSub">Wishing them an amazing day 🎉</div>
-  <button class="bday-banner-btn" onclick="dismissBdayBanner()">🎊 Celebrate!</button>
+  <div id="bdayConfetti" style="position:absolute;inset:0;overflow:hidden;pointer-events:none"></div>
+  <div class="bb-emoji">🎂</div>
+  <div class="bb-title">Happy Birthday!</div>
+  <div class="bb-name" id="bbName"></div>
+  <div class="bb-sub">Wishing them an amazing day 🎉</div>
+  <button class="bb-btn" onclick="dismissBday()">🎊 Celebrate!</button>
 </div>
 
-<div id="screenWrap">
+<!-- ── APP SHELL ── -->
+<div id="app">
 
-  <!-- ═══ SCREEN 0: HOME ═══ -->
-  <div class="screen" id="s0">
-    <div class="nav-bar">
-      <div>
-        <div class="app-logo">Rolodex</div>
-        <div class="app-tagline">Keep in touch</div>
-      </div>
-      <div class="profile-chip" onclick="nav(1)">
-        <div class="profile-avatar" id="profileAvatar">?</div>
-        <div class="profile-name" id="profileNameLabel">Set name</div>
-        <div class="profile-edit-icon">✎</div>
-      </div>
+  <!-- TOP BAR -->
+  <div id="topBar">
+    <div>
+      <div class="app-logo">Rolodex</div>
+      <div class="app-tagline">Keep in touch</div>
     </div>
-
-    <!-- Scrollable content area -->
-    <div class="home-scroll">
-      <div class="main" id="mainContent"></div>
-    </div>
-
-    <!-- Dimmer for when FAB is open — inside s0, below fab-footer in DOM -->
-    <div id="fabDimmer" onclick="closeFab()"></div>
-
-    <!-- FAB footer — always visible, never scrolls -->
-    <div class="fab-footer">
-      <div class="fab-speed-dial" id="fabDial">
-        <div class="fab-option" id="fabOptBday">
-          <div class="fab-option-label" onclick="navAddBday()">🎂 Birthday</div>
-          <div class="fab-option-icon bday" onclick="navAddBday()">🎂</div>
-        </div>
-        <div class="fab-option" id="fabOptContact">
-          <div class="fab-option-label" onclick="navAdd()">＋ Contact</div>
-          <div class="fab-option-icon contact" onclick="navAdd()">＋</div>
-        </div>
-      </div>
-      <button class="fab-main" id="fabMain" onclick="toggleFab()">＋</button>
+    <div class="profile-chip" onclick="openProfile()">
+      <div class="profile-avatar" id="pAvatar">?</div>
+      <div class="profile-name" id="pName">Set name</div>
     </div>
   </div>
 
-  <!-- ═══ SCREEN 1: PROFILE ═══ -->
-  <div class="screen" id="s1">
-    <div class="nav-bar">
-      <button class="back-btn" onclick="nav(0)">←</button>
-      <div class="nav-title">Your Profile</div>
-    </div>
-    <div class="form-body">
-      <div class="form-group">
-        <label class="form-label" for="pn-input">Your Name</label>
-        <input class="form-input" id="pn-input" type="text" inputmode="text"
-          placeholder="e.g. Kushal"
-          autocomplete="given-name" autocorrect="off" autocapitalize="words" spellcheck="false" />
-      </div>
-      <button class="btn-primary" onclick="saveProfileName()">Save Name</button>
-      <button class="btn-secondary" onclick="nav(0)">Cancel</button>
+  <!-- TAB CONTENT -->
+  <div id="tabContent">
 
-      <!-- ── BACKUP SECTION ── -->
-      <div class="backup-heading">Notifications</div>
-
-      <div class="notif-card">
-        <div class="notif-card-title">🔔 Birthday Notifications</div>
-        <div class="notif-card-desc">Get a push notification on your iPhone when it's someone's birthday — even when the app is closed. Requires permission once.</div>
-        <button class="backup-btn backup-btn-notif" onclick="requestNotifPermission()">Enable Notifications</button>
-        <div class="notif-status" id="notifStatus"></div>
-      </div>
-
-      <div class="backup-heading">Data &amp; Backup</div>
-
-      <div class="backup-card">
-        <div class="backup-card-title">📋 Copy Data</div>
-        <div class="backup-card-desc">Copy all your contacts and birthdays as text — paste into Notes, email, or anywhere to keep a backup.</div>
-        <button class="backup-btn backup-btn-copy" onclick="copyData()">Copy to Clipboard</button>
-        <div id="copyConfirm" style="display:none;font-size:12px;color:var(--teal);margin-top:8px;text-align:center;font-weight:600;">✓ Copied!</div>
-      </div>
-
-      <div class="backup-card">
-        <div class="backup-card-title">📥 Restore from Backup</div>
-        <div class="backup-card-desc">Paste your previously copied backup text below, then tap Restore. This will <strong style="color:var(--red)">replace</strong> your current data.</div>
-        <textarea class="form-input" id="restoreInput" rows="6"
-          placeholder="Paste your backup text here..."
-          style="resize:none;line-height:1.5;font-size:14px;margin-bottom:10px;"
-          autocorrect="off" autocapitalize="none" spellcheck="false"></textarea>
-        <button class="backup-btn backup-btn-restore" onclick="restoreData()">Restore Data</button>
-        <div id="restoreStatus" style="display:none;font-size:12px;margin-top:8px;text-align:center;font-weight:600;"></div>
-      </div>
-
-      <div class="backup-card">
-        <div class="backup-card-title">🗑 Reset All Data</div>
-        <div class="backup-card-desc">Permanently delete all contacts and birthdays from this device. This cannot be undone.</div>
-        <button class="backup-btn backup-btn-reset" onclick="resetData()">Reset Everything</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ═══ SCREEN 2: ADD CONTACT ═══ -->
-  <div class="screen" id="s2">
-    <div class="nav-bar">
-      <button class="back-btn" onclick="nav(0)">←</button>
-      <div class="nav-title">Add Contact</div>
-    </div>
-    <div class="form-body">
-      <div class="form-group">
-        <label class="form-label" for="fi-name">Name *</label>
-        <input class="form-input" id="fi-name" type="text" inputmode="text"
-          placeholder="Full name"
-          autocomplete="name" autocorrect="off" autocapitalize="words" spellcheck="false" />
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label" for="fi-phone">Phone</label>
-          <input class="form-input" id="fi-phone" type="tel" inputmode="tel"
-            placeholder="+1 555 000" autocomplete="tel" />
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="fi-date">Meet by *</label>
-          <input class="form-input" id="fi-date" type="date" />
-        </div>
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="fi-li">LinkedIn URL</label>
-        <input class="form-input" id="fi-li" type="url" inputmode="url"
-          placeholder="https://linkedin.com/in/..."
-          autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" />
-      </div>
-      <button class="btn-primary" onclick="saveContact()">Save Contact</button>
-      <button class="btn-secondary" onclick="nav(0)">Cancel</button>
-    </div>
-  </div>
-
-  <!-- ═══ SCREEN 3: EDIT CONTACT ═══ -->
-  <div class="screen" id="s3">
-    <div class="nav-bar">
-      <button class="back-btn" onclick="nav(0)">←</button>
-      <div class="nav-title" id="editTitle">Edit Contact</div>
-    </div>
-    <div class="form-body">
-      <input type="hidden" id="ei-id" />
-
-      <div id="editLiveFields">
-        <div class="form-group">
-          <label class="form-label" for="ei-name">Name *</label>
-          <input class="form-input" id="ei-name" type="text" inputmode="text"
-            placeholder="Full name"
-            autocomplete="name" autocorrect="off" autocapitalize="words" spellcheck="false" />
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label" for="ei-phone">Phone</label>
-            <input class="form-input" id="ei-phone" type="tel" inputmode="tel"
-              placeholder="+1 555 000" autocomplete="tel" />
+    <!-- PANE 0: HOME -->
+    <div class="tab-pane active" id="pane0">
+      <div class="home-wrap">
+        <div class="pb met-bar">
+          <div class="pb-row">
+            <div class="pb-lbl"><span class="pb-dot"></span>People Met Overall</div>
+            <div class="pb-num" id="metNum">0 <span class="tot">/ 0</span></div>
           </div>
-          <div class="form-group">
-            <label class="form-label" for="ei-date">Meet by *</label>
-            <input class="form-input" id="ei-date" type="date" />
+          <div class="pb-track"><div class="pb-fill" id="metFill"></div></div>
+        </div>
+        <div class="stats-row">
+          <div class="stat-card pp"><div class="stat-val" id="sP30">0</div><div class="stat-lbl">Planned<br>last 30d</div></div>
+          <div class="stat-card mp"><div class="stat-val" id="sM30">0</div><div class="stat-lbl">Met<br>last 30d</div></div>
+          <div class="stat-card pf"><div class="stat-val" id="sN60">0</div><div class="stat-lbl">Planned<br>next 60d</div></div>
+        </div>
+        <div class="pb miss-bar">
+          <div class="pb-row">
+            <div class="pb-lbl"><span class="pb-dot"></span>Missed Meetings</div>
+            <div class="pb-num" id="missNum">0 <span class="tot">/ 0</span></div>
+          </div>
+          <div class="pb-track"><div class="pb-fill" id="missFill"></div></div>
+        </div>
+        <div class="slbl" style="margin-top:10px">Next Up</div>
+        <div id="nuCard"></div>
+        <div id="bdCard"></div>
+      </div>
+    </div>
+
+    <!-- PANE 1: ADD MEETING -->
+    <div class="tab-pane" id="pane1">
+      <div class="form-wrap">
+        <div class="form-head">
+          <div class="form-head-title">Add Meeting</div>
+          <div class="form-head-sub">Plan an upcoming meeting</div>
+        </div>
+        <div class="fgrp">
+          <label class="flbl" for="fi-name">Name *</label>
+          <input class="finp" id="fi-name" type="text" inputmode="text" placeholder="Who are you meeting?"
+            autocomplete="name" autocorrect="off" autocapitalize="words" spellcheck="false"/>
+        </div>
+        <div class="frow">
+          <div class="fgrp">
+            <label class="flbl" for="fi-phone">Phone</label>
+            <input class="finp" id="fi-phone" type="tel" inputmode="tel" placeholder="+1 555 000" autocomplete="tel"/>
+          </div>
+          <div class="fgrp">
+            <label class="flbl" for="fi-date">Meet by *</label>
+            <input class="finp" id="fi-date" type="date"/>
           </div>
         </div>
-        <div class="form-group">
-          <label class="form-label" for="ei-li">LinkedIn URL</label>
-          <input class="form-input" id="ei-li" type="url" inputmode="url"
-            placeholder="https://linkedin.com/in/..."
-            autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" />
+        <div class="fgrp">
+          <label class="flbl" for="fi-li">LinkedIn URL</label>
+          <input class="finp" id="fi-li" type="url" inputmode="url" placeholder="https://linkedin.com/in/..."
+            autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false"/>
         </div>
-        <button class="btn-primary"  onclick="updateContact()">Update Contact</button>
-        <button class="btn-success"  onclick="markMetFromEdit()">✓ Mark as Met</button>
-        <button class="btn-danger"   onclick="deleteContact()">🗑 Remove Contact</button>
-        <button class="btn-secondary" onclick="nav(0)">Cancel</button>
-      </div>
-
-      <div id="metViewFields" style="display:none">
-        <div class="readonly-banner" id="metBanner"></div>
-        <div id="metDetails"></div>
-        <button class="btn-danger"    onclick="deleteContact()">🗑 Remove Contact</button>
-        <button class="btn-secondary" onclick="nav(0)">Close</button>
+        <button class="btn-p" onclick="saveContact()">Save Meeting</button>
+        <div class="success-msg" id="meetingSaved">✓ Meeting saved!</div>
       </div>
     </div>
+
+    <!-- PANE 2: ADD BIRTHDAY -->
+    <div class="tab-pane" id="pane2">
+      <div class="form-wrap">
+        <div class="form-head">
+          <div class="form-head-title">Add Birthday</div>
+          <div class="form-head-sub">Remember someone special's day</div>
+        </div>
+        <div class="fgrp">
+          <label class="flbl" for="bi-name">Name *</label>
+          <input class="finp" id="bi-name" type="text" inputmode="text" placeholder="e.g. Mum"
+            autocomplete="name" autocorrect="off" autocapitalize="words" spellcheck="false"/>
+        </div>
+        <div class="fgrp">
+          <label class="flbl" for="bi-date">Birthday *</label>
+          <input class="finp" id="bi-date" type="date"/>
+        </div>
+        <button class="btn-p" onclick="saveBirthday()">Save Birthday</button>
+        <div class="success-msg" id="bdaySaved">✓ Birthday saved!</div>
+      </div>
+    </div>
+
+    <!-- PANE 3: CONTACTS -->
+    <div class="tab-pane" id="pane3">
+      <div class="contacts-pane">
+        <div class="filter-row">
+          <button class="fc on" id="fc-m" onclick="setFilter('meetings')">Meetings</button>
+          <button class="fc" id="fc-b" onclick="setFilter('birthdays')">Birthdays</button>
+        </div>
+        <div class="c-scroll" id="cList"></div>
+      </div>
+    </div>
+
+  </div><!-- end tabContent -->
+
+  <!-- BOTTOM TAB BAR -->
+  <div id="tabBar">
+    <button class="tab-btn on" id="tb0" onclick="goTab(0)">
+      <span class="ti">🏠</span><span class="tl">Home</span>
+    </button>
+    <button class="tab-btn" id="tb1" onclick="goTab(1)">
+      <span class="ti">🤝</span><span class="tl">Meeting</span>
+    </button>
+    <button class="tab-btn" id="tb2" onclick="goTab(2)">
+      <span class="ti">🎂</span><span class="tl">Birthday</span>
+    </button>
+    <button class="tab-btn" id="tb3" onclick="goTab(3)">
+      <span class="ti">👥</span><span class="tl">Contacts</span>
+    </button>
   </div>
 
-  <!-- ═══ SCREEN 4: RESCHEDULE ═══ -->
-  <div class="screen" id="s4">
-    <div class="nav-bar">
-      <button class="back-btn" onclick="nav(0)">←</button>
-      <div class="nav-title">Reschedule</div>
+</div><!-- end app -->
+
+<!-- ══ EDIT MEETING SHEET ══ -->
+<div class="sheet-bg" id="editSh" onclick="sheetBgClick(event,'editSh')">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="editShTitle">Edit Meeting</div>
+    <input type="hidden" id="ei-id"/>
+    <div id="editLive">
+      <div class="fgrp">
+        <label class="flbl" for="ei-name">Name *</label>
+        <input class="finp" id="ei-name" type="text" inputmode="text" placeholder="Full name"
+          autocomplete="name" autocorrect="off" autocapitalize="words" spellcheck="false"/>
+      </div>
+      <div class="frow">
+        <div class="fgrp">
+          <label class="flbl" for="ei-phone">Phone</label>
+          <input class="finp" id="ei-phone" type="tel" inputmode="tel" placeholder="+1 555 000"/>
+        </div>
+        <div class="fgrp">
+          <label class="flbl" for="ei-date">Meet by *</label>
+          <input class="finp" id="ei-date" type="date"/>
+        </div>
+      </div>
+      <div class="fgrp">
+        <label class="flbl" for="ei-li">LinkedIn</label>
+        <input class="finp" id="ei-li" type="url" inputmode="url" placeholder="https://linkedin.com/in/..."
+          autocorrect="off" autocapitalize="none" spellcheck="false"/>
+      </div>
+      <button class="btn-p" onclick="updateContact()">Update</button>
+      <button class="btn-ok" onclick="markMetFromEdit()">✓ Mark as Met</button>
+      <button class="btn-d" onclick="deleteContact()">🗑 Remove</button>
+      <button class="btn-s" onclick="closeSheet('editSh')">Cancel</button>
     </div>
-    <div class="form-body">
-      <input type="hidden" id="rs-id" />
-      <div class="form-group">
-        <label class="form-label" for="rs-date">New Meet-by Date *</label>
-        <input class="form-input" id="rs-date" type="date" />
-      </div>
-      <div class="shift-btns">
-        <button class="shift-btn" onclick="shiftDays(7)">+1 week</button>
-        <button class="shift-btn" onclick="shiftDays(14)">+2 weeks</button>
-        <button class="shift-btn" onclick="shiftDays(30)">+1 month</button>
-      </div>
-      <button class="btn-primary"  onclick="saveReschedule()">Reschedule</button>
-      <button class="btn-secondary" onclick="nav(0)">Cancel</button>
+    <div id="editMet" style="display:none">
+      <div class="ro-banner" id="metBanner"></div>
+      <div id="metDet"></div>
+      <button class="btn-d" onclick="deleteContact()">🗑 Remove Contact</button>
+      <button class="btn-s" onclick="closeSheet('editSh')">Close</button>
     </div>
   </div>
+</div>
 
-  <!-- ═══ SCREEN 5: ADD BIRTHDAY ═══ -->
-  <div class="screen" id="s5">
-    <div class="nav-bar">
-      <button class="back-btn" onclick="nav(0)">←</button>
-      <div class="nav-title" id="bdayScreenTitle">Add Birthday</div>
+<!-- ══ RESCHEDULE SHEET ══ -->
+<div class="sheet-bg" id="rsSh" onclick="sheetBgClick(event,'rsSh')">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Reschedule</div>
+    <input type="hidden" id="rs-id"/>
+    <div class="fgrp">
+      <label class="flbl" for="rs-date">New date *</label>
+      <input class="finp" id="rs-date" type="date"/>
     </div>
-    <div class="form-body">
-      <input type="hidden" id="bi-id" />
-      <div class="form-group">
-        <label class="form-label" for="bi-name">Name *</label>
-        <input class="form-input" id="bi-name" type="text" inputmode="text"
-          placeholder="e.g. Mum"
-          autocomplete="name" autocorrect="off" autocapitalize="words" spellcheck="false" />
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="bi-date">Birthday *</label>
-        <input class="form-input" id="bi-date" type="date" />
-      </div>
-      <button class="btn-primary" id="bdaySaveBtn" onclick="saveBirthday()">Save Birthday</button>
-      <button class="btn-danger"  id="bdayDeleteBtn" onclick="deleteBirthday()" style="display:none">🗑 Remove Birthday</button>
-      <button class="btn-secondary" onclick="nav(0)">Cancel</button>
+    <div class="shift-row">
+      <button class="shift-btn" onclick="shiftDays(7)">+1 week</button>
+      <button class="shift-btn" onclick="shiftDays(14)">+2 weeks</button>
+      <button class="shift-btn" onclick="shiftDays(30)">+1 month</button>
+    </div>
+    <button class="btn-p" onclick="saveReschedule()">Reschedule</button>
+    <button class="btn-s" onclick="closeSheet('rsSh')">Cancel</button>
+  </div>
+</div>
+
+<!-- ══ EDIT BIRTHDAY SHEET ══ -->
+<div class="sheet-bg" id="bdEditSh" onclick="sheetBgClick(event,'bdEditSh')">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Edit Birthday</div>
+    <input type="hidden" id="bei-id"/>
+    <div class="fgrp">
+      <label class="flbl" for="bei-name">Name *</label>
+      <input class="finp" id="bei-name" type="text" inputmode="text" placeholder="Name"
+        autocorrect="off" autocapitalize="words" spellcheck="false"/>
+    </div>
+    <div class="fgrp">
+      <label class="flbl" for="bei-date">Birthday *</label>
+      <input class="finp" id="bei-date" type="date"/>
+    </div>
+    <button class="btn-p" onclick="updateBirthday()">Update Birthday</button>
+    <button class="btn-d" onclick="deleteBirthday()">🗑 Remove Birthday</button>
+    <button class="btn-s" onclick="closeSheet('bdEditSh')">Cancel</button>
+  </div>
+</div>
+
+<!-- ══ PROFILE SHEET ══ -->
+<div class="sheet-bg" id="profileSh" onclick="sheetBgClick(event,'profileSh')">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Your Profile</div>
+    <div class="fgrp">
+      <label class="flbl" for="pn-inp">Your Name</label>
+      <input class="finp" id="pn-inp" type="text" inputmode="text" placeholder="e.g. Kushal"
+        autocomplete="given-name" autocorrect="off" autocapitalize="words" spellcheck="false"/>
+    </div>
+    <button class="btn-p" onclick="saveProfileName()">Save Name</button>
+    <button class="btn-s" onclick="closeSheet('profileSh')">Cancel</button>
+
+    <div class="bkp-head">Data &amp; Backup</div>
+    <div class="bkp-card">
+      <div class="bkp-card-t">📋 Copy Data</div>
+      <div class="bkp-card-d">Copy all contacts and birthdays as plain text for safekeeping.</div>
+      <button class="bkp-btn bb-copy" onclick="copyData()">Copy to Clipboard</button>
+      <div id="copyOk" style="display:none;font-size:11px;color:var(--teal);margin-top:7px;text-align:center;font-weight:600;">✓ Copied!</div>
+    </div>
+    <div class="bkp-card">
+      <div class="bkp-card-t">📥 Restore from Backup</div>
+      <div class="bkp-card-d">Paste backup text to restore. <strong style="color:var(--red)">Replaces</strong> current data.</div>
+      <textarea class="finp" id="restoreInput" rows="4" placeholder="Paste backup text here…"
+        style="resize:none;line-height:1.5;font-size:14px;margin-bottom:10px;"
+        autocorrect="off" autocapitalize="none" spellcheck="false"></textarea>
+      <button class="bkp-btn bb-restore" onclick="restoreData()">Restore Data</button>
+      <div id="restoreOk" style="display:none;font-size:11px;margin-top:7px;text-align:center;font-weight:600;"></div>
+    </div>
+    <div class="bkp-card">
+      <div class="bkp-card-t">🗑 Reset All Data</div>
+      <div class="bkp-card-d">Permanently delete all contacts and birthdays from this device.</div>
+      <button class="bkp-btn bb-reset" onclick="resetData()">Reset Everything</button>
     </div>
   </div>
-
-</div><!-- end screenWrap -->
+</div>
 
 <script>
 // ── STATE ─────────────────────────────────────────────────────────────────
 const STORE='circles_v3';
-const DEFAULT_BIRTHDAYS=[
-  {id:'bd-mom',   name:'Mom',        date:'2000-03-20'},
-  {id:'bd-ath',   name:'Atharv',     date:'2000-05-24'},
-  {id:'bd-esha',  name:'Esha',       date:'2000-05-05'},
-  {id:'bd-reyan', name:'Reyan',      date:'2000-04-26'},
-  {id:'bd-emom',  name:"Esha's Mom", date:'2000-11-14'},
+const DEFAULT_BDAYS=[
+  {id:'bd-mom',  name:'Mom',       date:'2000-03-20'},
+  {id:'bd-ath',  name:'Atharv',    date:'2000-05-24'},
+  {id:'bd-esha', name:'Esha',      date:'2000-05-05'},
+  {id:'bd-rey',  name:'Reyan',     date:'2000-04-26'},
+  {id:'bd-em',   name:"Esha's Mom",date:'2000-11-14'},
 ];
 let state={profileName:'',contacts:[],birthdays:[]};
+let curFilter='meetings';
+let curTab=0;
+let expandedId=null;
 
 function save(){localStorage.setItem(STORE,JSON.stringify(state));}
 function load(){
   try{
     const old=localStorage.getItem('circles_v2');
-    if(old){const o=JSON.parse(old);const ku=o.kushal||[],es=o.esha||[];state.contacts=ku.length>=es.length?ku:es;state.birthdays=DEFAULT_BIRTHDAYS;save();localStorage.removeItem('circles_v2');return;}
-    const d=localStorage.getItem(STORE);
-    if(d){
-      state=JSON.parse(d);
-      if(!state.birthdays||state.birthdays.length===0) state.birthdays=[...DEFAULT_BIRTHDAYS];
-    } else {
-      // First ever load — seed birthdays
-      state.birthdays=[...DEFAULT_BIRTHDAYS];
+    if(old){
+      const o=JSON.parse(old);
+      const ku=o.kushal||[],es=o.esha||[];
+      state.contacts=ku.length>=es.length?ku:es;
+      state.birthdays=[...DEFAULT_BDAYS];
+      save();localStorage.removeItem('circles_v2');return;
     }
+    const d=localStorage.getItem(STORE);
+    if(d){state=JSON.parse(d);if(!state.birthdays?.length)state.birthdays=[...DEFAULT_BDAYS];}
+    else{state.birthdays=[...DEFAULT_BDAYS];}
   }catch(e){}
 }
 
-// ── FAB SPEED DIAL ────────────────────────────────────────────────────────
-let fabOpen=false;
-function toggleFab(){
-  fabOpen=!fabOpen;
-  document.getElementById('fabMain').classList.toggle('open',fabOpen);
-  document.getElementById('fabDimmer').classList.toggle('open',fabOpen);
-  const c=document.getElementById('fabOptContact');
-  const b=document.getElementById('fabOptBday');
-  if(fabOpen){
-    c.style.transitionDelay='0s';
-    b.style.transitionDelay='0.07s';
-    c.classList.add('open');
-    b.classList.add('open');
-  } else {
-    c.style.transitionDelay='0s';
-    b.style.transitionDelay='0s';
-    c.classList.remove('open');
-    b.classList.remove('open');
-  }
-}
-function closeFab(){
-  fabOpen=false;
-  document.getElementById('fabMain').classList.remove('open');
-  document.getElementById('fabDimmer').classList.remove('open');
-  document.getElementById('fabOptContact').classList.remove('open');
-  document.getElementById('fabOptBday').classList.remove('open');
+// ── TABS ──────────────────────────────────────────────────────────────────
+function goTab(i){
+  document.getElementById('pane'+curTab).classList.remove('active');
+  document.getElementById('tb'+curTab).classList.remove('on');
+  curTab=i;
+  document.getElementById('pane'+i).classList.add('active');
+  document.getElementById('tb'+i).classList.add('on');
+  if(i===3)renderContacts();
 }
 
-// ── NAVIGATION ────────────────────────────────────────────────────────────
-// Each screen is 1/6 of 600%-wide wrapper = exactly 100vw
-function nav(idx){
-  document.getElementById('screenWrap').style.transform=`translateX(-${idx*100/6}%)`;
-}
-
-function navAdd(){
-  closeFab();
-  document.getElementById('fi-name').value='';
-  document.getElementById('fi-phone').value='';
-  document.getElementById('fi-date').value='';
-  document.getElementById('fi-li').value='';
-  document.getElementById('fi-date').min=new Date().toISOString().split('T')[0];
-  nav(2);
-}
-
-function navAddBday(){
-  closeFab();
-  document.getElementById('bi-id').value='';
-  document.getElementById('bi-name').value='';
-  document.getElementById('bi-date').value='';
-  document.getElementById('bdayScreenTitle').textContent='Add Birthday';
-  document.getElementById('bdaySaveBtn').textContent='Save Birthday';
-  document.getElementById('bdayDeleteBtn').style.display='none';
-  nav(5);
-}
+// ── SHEETS ────────────────────────────────────────────────────────────────
+function openSheet(id){document.getElementById(id).classList.add('open');}
+function closeSheet(id){document.getElementById(id).classList.remove('open');}
+function sheetBgClick(e,id){if(e.target===document.getElementById(id))closeSheet(id);}
 
 // ── UTILS ─────────────────────────────────────────────────────────────────
 function initials(n){return(n||'?').split(' ').map(w=>w[0]||'').join('').toUpperCase().slice(0,2)||'?';}
-const GRADS=['linear-gradient(135deg,#b57bff,#00d4ff)','linear-gradient(135deg,#ff5fa0,#ff7b35)','linear-gradient(135deg,#aaff5c,#06d6a0)','linear-gradient(135deg,#00d4ff,#06d6a0)','linear-gradient(135deg,#ffd166,#ff7b35)','linear-gradient(135deg,#b57bff,#ff5fa0)'];
+const GRADS=['linear-gradient(135deg,#b57bff,#00d4ff)','linear-gradient(135deg,#ff5fa0,#ff7b35)',
+  'linear-gradient(135deg,#aaff5c,#06d6a0)','linear-gradient(135deg,#00d4ff,#06d6a0)',
+  'linear-gradient(135deg,#ffd166,#ff7b35)','linear-gradient(135deg,#b57bff,#ff5fa0)'];
 function colorFor(n){let h=0;for(const c of(n||''))h=(h*31+c.charCodeAt(0))&0xffff;return GRADS[h%GRADS.length];}
 function daysDiff(ds){const t=new Date();t.setHours(0,0,0,0);const d=new Date(ds);d.setHours(0,0,0,0);return Math.round((d-t)/86400000);}
 function fmt(ds){return new Date(ds).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}
-function daysLabel(d){if(d===0)return'Today';if(d===1)return'Tomorrow';if(d===-1)return'Yesterday';if(d<0)return`${-d}d overdue`;return`in ${d}d`;}
+function daysLbl(d){if(d===0)return'Today';if(d===1)return'Tomorrow';if(d===-1)return'Yesterday';if(d<0)return`${-d}d overdue`;return`in ${d}d`;}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
 function esc(s){if(!s)return'';return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
 // ── PROFILE ───────────────────────────────────────────────────────────────
 function updateProfileChip(){
   const n=state.profileName||'';
-  document.getElementById('profileNameLabel').textContent=n||'Set name';
-  document.getElementById('profileAvatar').textContent=n?initials(n):'?';
+  document.getElementById('pName').textContent=n||'Set name';
+  document.getElementById('pAvatar').textContent=n?initials(n):'?';
 }
-document.querySelector('.profile-chip').addEventListener('click',function(){
-  document.getElementById('pn-input').value=state.profileName||'';
-  nav(1);
-});
+function openProfile(){
+  document.getElementById('pn-inp').value=state.profileName||'';
+  openSheet('profileSh');
+}
 function saveProfileName(){
-  state.profileName=document.getElementById('pn-input').value.trim();
-  save();updateProfileChip();nav(0);
+  state.profileName=document.getElementById('pn-inp').value.trim();
+  save();updateProfileChip();closeSheet('profileSh');
 }
 
-// ── STATS ─────────────────────────────────────────────────────────────────
+// ── STATS & HOME ──────────────────────────────────────────────────────────
 function computeStats(){
-  const contacts=state.contacts;
   const today=new Date();today.setHours(0,0,0,0);
   const ms30=30*86400000,ms60=60*86400000;
-  let plannedLast30=0,metLast30=0,plannedNext60=0,totalMet=0,totalMissed=0,total=0;
-  for(const c of contacts){
-    if(!c.dueDate)continue;total++;
+  let p30=0,m30=0,n60=0,tMet=0,tMiss=0,tot=0;
+  for(const c of state.contacts){
+    if(!c.dueDate)continue;tot++;
     const due=new Date(c.dueDate);due.setHours(0,0,0,0);
     const diff=due-today;
-    if(diff>=-ms30&&diff<=0)plannedLast30++;
-    if(diff>0&&diff<=ms60)plannedNext60++;
-    if(c.met){totalMet++;const md=new Date(c.metDate);md.setHours(0,0,0,0);if(today-md>=0&&today-md<=ms30)metLast30++;}
-    else if(diff<0)totalMissed++;
+    if(diff>=-ms30&&diff<=0)p30++;
+    if(diff>0&&diff<=ms60)n60++;
+    if(c.met){tMet++;const md=new Date(c.metDate);md.setHours(0,0,0,0);if(today-md>=0&&today-md<=ms30)m30++;}
+    else if(diff<0)tMiss++;
   }
-  return{plannedLast30,metLast30,plannedNext60,totalMet,totalMissed,total};
+  return{p30,m30,n60,tMet,tMiss,tot};
 }
 
-// ── RENDER ────────────────────────────────────────────────────────────────
-function render(){
+function renderHome(){
   updateProfileChip();
-  const contacts=state.contacts;
   const s=computeStats();
-  const active=contacts.filter(c=>!c.met).sort((a,b)=>new Date(a.dueDate)-new Date(b.dueDate));
-  const met=contacts.filter(c=>c.met).sort((a,b)=>new Date(b.metDate)-new Date(a.metDate));
-  const metPct=s.total>0?Math.round(s.totalMet/s.total*100):0;
-  const missedPct=s.total>0?Math.round(s.totalMissed/s.total*100):0;
+  const metPct=s.tot>0?Math.round(s.tMet/s.tot*100):0;
+  const missPct=s.tot>0?Math.round(s.tMiss/s.tot*100):0;
 
-  let html='';
-  html+=`<div class="pb-strip met-bar"><div class="pb-header"><div class="pb-label"><span class="pb-dot"></span>People Met Overall</div><div class="pb-nums">${s.totalMet} <span class="of-total">/ ${s.total}</span></div></div><div class="pb-track"><div class="pb-fill" id="metFill"></div></div></div>`;
-  html+=`<div class="dashboard"><div class="stat-card planned-past"><div class="stat-value">${s.plannedLast30}</div><div class="stat-label">Planned<br>last 30d</div></div><div class="stat-card met-past"><div class="stat-value">${s.metLast30}</div><div class="stat-label">Met<br>last 30d</div></div><div class="stat-card planned-future"><div class="stat-value">${s.plannedNext60}</div><div class="stat-label">Planned<br>next 60d</div></div></div>`;
-  html+=`<div class="pb-strip missed-bar"><div class="pb-header"><div class="pb-label"><span class="pb-dot"></span>Missed Meetings</div><div class="pb-nums">${s.totalMissed} <span class="of-total">/ ${s.total}</span></div></div><div class="pb-track"><div class="pb-fill" id="missedFill"></div></div></div>`;
+  document.getElementById('metNum').innerHTML=`${s.tMet} <span class="tot">/ ${s.tot}</span>`;
+  document.getElementById('missNum').innerHTML=`${s.tMiss} <span class="tot">/ ${s.tot}</span>`;
+  document.getElementById('sP30').textContent=s.p30;
+  document.getElementById('sM30').textContent=s.m30;
+  document.getElementById('sN60').textContent=s.n60;
 
-  html+=`<div class="section-label" style="margin-top:18px">Next Up</div>`;
+  requestAnimationFrame(()=>setTimeout(()=>{
+    const mf=document.getElementById('metFill'),xf=document.getElementById('missFill');
+    if(mf)mf.style.width=metPct+'%';
+    if(xf)xf.style.width=missPct+'%';
+  },80));
+
+  // Next Up
+  const active=state.contacts.filter(c=>!c.met).sort((a,b)=>new Date(a.dueDate)-new Date(b.dueDate));
+  let nu='';
   if(active.length===0){
-    html+=`<div class="next-up-card"><div class="blob blob1"></div><div class="blob blob2"></div><div class="empty-state">No upcoming meetings — tap ＋ to add someone!</div></div>`;
+    nu=`<div class="nu-card"><div class="b1 blob"></div><div class="b2 blob"></div><div class="nu-empty">No upcoming meetings — use the Meeting tab to add one</div></div>`;
   }else{
     const c=active[0],diff=daysDiff(c.dueDate);
-    const oc=diff<0?'overdue':'';
+    const oc=diff<0?'ov':'';
     const dl=diff<0?`⚠️ ${-diff}d overdue`:diff===0?'🔥 Due Today!':diff<=3?`⚡ ${fmt(c.dueDate)}`:`📅 ${fmt(c.dueDate)}`;
-    html+=`<div class="next-up-card"><div class="blob blob1"></div><div class="blob blob2"></div><div class="card-row"><div class="card-avatar" style="background:${colorFor(c.name)}">${initials(c.name)}</div><div class="card-info"><div class="card-name">${esc(c.name)}</div><div class="card-due ${oc}">${dl}</div></div><div class="card-actions"><button class="card-icon-btn tick" onclick="markMet('${c.id}')" title="Mark as Met">✓</button><button class="card-icon-btn cross" onclick="cancelMeeting('${c.id}')" title="Cancel Meeting">✕</button></div></div></div>`;
+    nu=`<div class="nu-card"><div class="b1 blob"></div><div class="b2 blob"></div><div class="nu-row">
+      <div class="nu-av" style="background:${colorFor(c.name)}">${initials(c.name)}</div>
+      <div class="nu-info"><div class="nu-name">${esc(c.name)}</div><div class="nu-due ${oc}">${dl}</div></div>
+      <div class="nu-acts">
+        <button class="ic-btn tick" onclick="markMet('${c.id}')">✓</button>
+        <button class="ic-btn cross" onclick="cancelMeeting('${c.id}')">✕</button>
+      </div></div></div>`;
   }
+  document.getElementById('nuCard').innerHTML=nu;
 
-  // ── Birthday card ──
-  const bdayHtml = nextBirthdayHtml();
-  if(bdayHtml) html += bdayHtml;
-
-  html+=`<div class="section-label">All Contacts</div>`;
-  if(contacts.length===0){
-    html+=`<div class="empty-full"><span class="emoji">👋</span><p>Add people you want to stay in touch with.</p></div>`;
-  }else{
-    html+=`<div class="contacts-list">`;
-    for(const c of active)html+=itemHtml(c);
-    if(met.length>0){html+=`<div class="divider-label">✓ Met</div>`;for(const c of met)html+=itemHtml(c);}
-    html+=`</div>`;
-  }
-
-  document.getElementById('mainContent').innerHTML=html;
-  requestAnimationFrame(()=>setTimeout(()=>{
-    const mf=document.getElementById('metFill'),xf=document.getElementById('missedFill');
-    if(mf)mf.style.width=metPct+'%';
-    if(xf)xf.style.width=missedPct+'%';
-  },100));
+  // Birthday card
+  document.getElementById('bdCard').innerHTML=nextBdayHtml();
 }
 
-function itemHtml(c){
+// ── BIRTHDAY HELPERS ──────────────────────────────────────────────────────
+function bdayDaysUntil(ds){
+  const today=new Date();today.setHours(0,0,0,0);
+  const raw=new Date(ds);
+  const ty=new Date(today.getFullYear(),raw.getMonth(),raw.getDate());
+  ty.setHours(0,0,0,0);
+  if(ty>=today)return Math.round((ty-today)/86400000);
+  return -1;
+}
+function nextBdayHtml(){
+  if(!state.birthdays?.length)return'';
+  let best=null,bestD=Infinity;
+  for(const b of state.birthdays){const d=bdayDaysUntil(b.date);if(d>=0&&d<bestD){bestD=d;best=b;}}
+  if(!best)return'';
+  const lbl=bestD===0?'🎉 Today!':bestD===1?'Tomorrow':`in ${bestD}d`;
+  const raw=new Date(best.date);
+  const md=raw.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  return`<div class="slbl" style="margin-top:4px">Upcoming Birthday</div>
+    <div class="bd-card" onclick="openBdEdit('${best.id}')">
+      <div class="bd-row">
+        <div class="bd-icon">🎂</div>
+        <div><div class="bd-name">${esc(best.name)}</div><div class="bd-date">${md} · ${lbl}</div></div>
+      </div>
+    </div>`;
+}
+
+// ── BIRTHDAY BANNER ───────────────────────────────────────────────────────
+function checkBdayBanner(){
+  for(const b of(state.birthdays||[])){
+    if(bdayDaysUntil(b.date)===0){
+      const key='bday-shown-'+b.id+'-'+new Date().getFullYear();
+      if(!localStorage.getItem(key)){
+        document.getElementById('bbName').textContent=b.name;
+        document.getElementById('bdayBanner').classList.add('show');
+        spawnConfetti();
+        localStorage.setItem(key,'1');
+        return;
+      }
+    }
+  }
+}
+function dismissBday(){document.getElementById('bdayBanner').classList.remove('show');}
+function spawnConfetti(){
+  const layer=document.getElementById('bdayConfetti');layer.innerHTML='';
+  const cols=['#ffd166','#ff5fa0','#b57bff','#00d4ff','#aaff5c','#ff7b35'];
+  for(let i=0;i<60;i++){
+    const el=document.createElement('div');el.className='confetti';
+    el.style.cssText=`left:${Math.random()*100}%;top:-10px;background:${cols[i%cols.length]};
+      animation-duration:${2+Math.random()*2}s;animation-delay:${Math.random()*1.5}s;
+      transform:scale(${0.5+Math.random()});`;
+    layer.appendChild(el);
+  }
+}
+
+// ── CONTACTS TAB ──────────────────────────────────────────────────────────
+function setFilter(f){
+  curFilter=f;
+  document.getElementById('fc-m').classList.toggle('on',f==='meetings');
+  document.getElementById('fc-b').classList.toggle('on',f==='birthdays');
+  renderContacts();
+}
+
+function renderContacts(){
+  const el=document.getElementById('cList');
+  let html='';
+  if(curFilter==='meetings'){
+    const active=state.contacts.filter(c=>!c.met).sort((a,b)=>new Date(a.dueDate)-new Date(b.dueDate));
+    const met=state.contacts.filter(c=>c.met).sort((a,b)=>new Date(b.metDate)-new Date(a.metDate));
+    if(!state.contacts.length){
+      html=`<div class="empty-c"><span class="em">🤝</span><p>No meetings yet.<br>Use the Meeting tab to add one.</p></div>`;
+    }else{
+      if(active.length){html+=`<div class="c-list">`;for(const c of active)html+=ciHtml(c);html+=`</div>`;}
+      if(met.length){html+=`<div class="divlbl">✓ Met</div><div class="c-list">`;for(const c of met)html+=ciHtml(c);html+=`</div>`;}
+    }
+  }else{
+    if(!state.birthdays?.length){
+      html=`<div class="empty-c"><span class="em">🎂</span><p>No birthdays yet.<br>Use the Birthday tab to add one.</p></div>`;
+    }else{
+      // Sort: upcoming first (by days asc), then passed (by days desc so most recent first)
+      const bds=state.birthdays.map(b=>({...b,d:bdayDaysUntil(b.date)}));
+      const upcoming=bds.filter(b=>b.d>=0).sort((a,b)=>a.d-b.d);
+      const passed=bds.filter(b=>b.d<0);
+      const sorted=[...upcoming,...passed];
+      html=`<div class="c-list">`;
+      for(const b of sorted){
+        const raw=new Date(b.date);
+        const md=raw.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+        const lbl=b.d<0?'Passed':b.d===0?'🎉 Today!':b.d===1?'Tomorrow':`in ${b.d}d`;
+        const bc=b.d<0?'mt':b.d<=1?'sn':'bd';
+        html+=`<div class="ci" onclick="openBdEdit('${b.id}')">
+          <div class="ci-av" style="background:linear-gradient(135deg,var(--yellow),var(--orange))">🎂</div>
+          <div class="ci-info"><div class="ci-name">${esc(b.name)}</div><div class="ci-sub">${md}</div></div>
+          <div class="ci-right"><span class="dbadge ${bc}">${lbl}</span></div>
+        </div>`;
+      }
+      html+=`</div>`;
+    }
+  }
+  el.innerHTML=html;
+}
+
+function ciHtml(c){
   const diff=c.met?null:daysDiff(c.dueDate);
   const over=!c.met&&diff<0,soon=!c.met&&diff!==null&&diff>=0&&diff<=7;
-  const bc=c.met?'met':over?'overdue':soon?'soon':'upcoming';
+  const bc=c.met?'mt':over?'ov':soon?'sn':'up';
   const bt=c.met?'✓ Met':fmt(c.dueDate);
-  const dl=c.met?(c.metDate?`met ${fmt(c.metDate)}`:''):daysLabel(diff);
-  const actRow=c.met?'':`<div class="item-actions" id="ia-${c.id}" style="display:none"><button class="item-act-btn iab-later" onclick="openReschedule('${c.id}');event.stopPropagation()">↪ Reschedule</button><button class="item-act-btn iab-cancel" onclick="cancelMeeting('${c.id}');event.stopPropagation()">✕ Cancel</button><button class="item-act-btn iab-edit" onclick="openEdit('${c.id}');event.stopPropagation()">✎ Edit</button></div>`;
-  const tap=c.met?`openEdit('${c.id}')`:`toggleActions('${c.id}')`;
-  return`<div class="contact-item${over?' overdue':''}${c.met?' met':''}" id="ci-${c.id}" onclick="${tap}"><div class="list-avatar" style="background:${colorFor(c.name)}">${initials(c.name)}</div><div class="list-info"><div class="list-name${c.met?' met-strike':''}">${esc(c.name)}</div><div class="list-sub">${c.phone?esc(c.phone):'&nbsp;'}</div></div><div class="list-date"><span class="date-badge ${bc}">${bt}</span><span class="days-label">${dl}</span></div>${actRow}</div>`;
+  const dl=c.met?(c.metDate?`met ${fmt(c.metDate)}`:''):daysLbl(diff);
+  const acts=c.met?'':`<div class="act-row" id="ia-${c.id}" style="display:none">
+    <button class="ab ab-rs" onclick="openReschedule('${c.id}');event.stopPropagation()">↪ Reschedule</button>
+    <button class="ab ab-cl" onclick="cancelMeeting('${c.id}');event.stopPropagation()">✕ Cancel</button>
+    <button class="ab ab-ed" onclick="openEdit('${c.id}');event.stopPropagation()">✎ Edit</button>
+  </div>`;
+  const tap=c.met?`openEdit('${c.id}')`:`toggleActs('${c.id}')`;
+  return`<div class="ci${over?' ov':''}${c.met?' done':''}" id="ci-${c.id}" onclick="${tap}">
+    <div class="ci-av" style="background:${colorFor(c.name)}">${initials(c.name)}</div>
+    <div class="ci-info"><div class="ci-name${c.met?' thru':''}">${esc(c.name)}</div>
+    <div class="ci-sub">${c.phone?esc(c.phone):'&nbsp;'}</div></div>
+    <div class="ci-right"><span class="dbadge ${bc}">${bt}</span><span class="dlbl">${dl}</span></div>
+    ${acts}
+  </div>`;
 }
 
-// ── ACTIONS ───────────────────────────────────────────────────────────────
-function markMet(id){
-  const c=state.contacts.find(x=>x.id===id);if(!c)return;
-  c.met=true;c.metDate=new Date().toISOString().split('T')[0];
-  save();render();
-}
-
-let expandedId=null;
-function toggleActions(id){
+function toggleActs(id){
   if(expandedId&&expandedId!==id){const p=document.getElementById('ia-'+expandedId);if(p)p.style.display='none';}
   const el=document.getElementById('ia-'+id);if(!el)return;
   const open=el.style.display!=='none';
@@ -772,10 +786,16 @@ function toggleActions(id){
   expandedId=open?null:id;
 }
 
+// ── MEETING ACTIONS ───────────────────────────────────────────────────────
+function markMet(id){
+  const c=state.contacts.find(x=>x.id===id);if(!c)return;
+  c.met=true;c.metDate=new Date().toISOString().split('T')[0];
+  save();renderHome();if(curTab===3)renderContacts();
+}
 function cancelMeeting(id){
   if(!confirm('Remove this meeting?'))return;
   state.contacts=state.contacts.filter(x=>x.id!==id);
-  save();expandedId=null;render();
+  save();expandedId=null;renderHome();if(curTab===3)renderContacts();
 }
 
 // ── SAVE CONTACT ──────────────────────────────────────────────────────────
@@ -787,7 +807,14 @@ function saveContact(){
   if(!name){alert('Name is required');return;}
   if(!date){alert('Meet by date is required');return;}
   state.contacts.push({id:uid(),name,phone,dueDate:date,linkedin:li,met:false,metDate:null,createdAt:Date.now()});
-  save();nav(0);render();
+  save();renderHome();
+  // Clear form and flash success
+  document.getElementById('fi-name').value='';
+  document.getElementById('fi-phone').value='';
+  document.getElementById('fi-date').value='';
+  document.getElementById('fi-li').value='';
+  const msg=document.getElementById('meetingSaved');
+  msg.style.display='block';setTimeout(()=>{msg.style.display='none';goTab(0);},1200);
 }
 
 // ── EDIT CONTACT ──────────────────────────────────────────────────────────
@@ -795,27 +822,26 @@ function openEdit(id){
   const c=state.contacts.find(x=>x.id===id);if(!c)return;
   document.getElementById('ei-id').value=id;
   if(c.met){
-    document.getElementById('editTitle').textContent=c.name;
-    document.getElementById('editLiveFields').style.display='none';
-    document.getElementById('metViewFields').style.display='block';
+    document.getElementById('editShTitle').textContent=c.name;
+    document.getElementById('editLive').style.display='none';
+    document.getElementById('editMet').style.display='block';
     document.getElementById('metBanner').textContent=`✅ Met on ${fmt(c.metDate)}`;
     let det='';
-    if(c.phone)det+=`<div class="form-group"><div class="form-label">Phone</div><div style="font-size:16px;padding:4px 0">${esc(c.phone)}</div></div>`;
-    if(c.linkedin)det+=`<div class="form-group"><div class="form-label">LinkedIn</div><a href="${esc(c.linkedin)}" target="_blank" style="color:var(--cyan);font-size:14px;">View Profile →</a></div>`;
-    det+=`<div class="form-group"><div class="form-label">Was Due</div><div style="font-size:16px;padding:4px 0">${fmt(c.dueDate)}</div></div>`;
-    document.getElementById('metDetails').innerHTML=det;
+    if(c.phone)det+=`<div class="fgrp"><div class="flbl">Phone</div><div style="font-size:15px;padding:4px 0">${esc(c.phone)}</div></div>`;
+    if(c.linkedin)det+=`<div class="fgrp"><div class="flbl">LinkedIn</div><a href="${esc(c.linkedin)}" target="_blank" style="color:var(--cyan);font-size:13px;">View Profile →</a></div>`;
+    det+=`<div class="fgrp"><div class="flbl">Was Due</div><div style="font-size:15px;padding:4px 0">${fmt(c.dueDate)}</div></div>`;
+    document.getElementById('metDet').innerHTML=det;
   }else{
-    document.getElementById('editTitle').textContent='Edit Contact';
-    document.getElementById('editLiveFields').style.display='block';
-    document.getElementById('metViewFields').style.display='none';
+    document.getElementById('editShTitle').textContent='Edit Meeting';
+    document.getElementById('editLive').style.display='block';
+    document.getElementById('editMet').style.display='none';
     document.getElementById('ei-name').value=c.name||'';
     document.getElementById('ei-phone').value=c.phone||'';
     document.getElementById('ei-date').value=c.dueDate||'';
     document.getElementById('ei-li').value=c.linkedin||'';
   }
-  nav(3);
+  openSheet('editSh');
 }
-
 function updateContact(){
   const id=document.getElementById('ei-id').value;
   const c=state.contacts.find(x=>x.id===id);if(!c)return;
@@ -824,18 +850,14 @@ function updateContact(){
   if(!name||!date){alert('Name and date are required');return;}
   c.name=name;c.phone=document.getElementById('ei-phone').value.trim();
   c.dueDate=date;c.linkedin=document.getElementById('ei-li').value.trim();
-  save();nav(0);render();
+  save();closeSheet('editSh');renderHome();if(curTab===3)renderContacts();
 }
-
-function markMetFromEdit(){
-  markMet(document.getElementById('ei-id').value);nav(0);
-}
-
+function markMetFromEdit(){markMet(document.getElementById('ei-id').value);closeSheet('editSh');}
 function deleteContact(){
   const id=document.getElementById('ei-id').value;
   if(!confirm('Remove this contact?'))return;
   state.contacts=state.contacts.filter(x=>x.id!==id);
-  save();nav(0);render();
+  save();closeSheet('editSh');renderHome();if(curTab===3)renderContacts();
 }
 
 // ── RESCHEDULE ────────────────────────────────────────────────────────────
@@ -844,227 +866,118 @@ function openReschedule(id){
   document.getElementById('rs-id').value=id;
   document.getElementById('rs-date').value=c.dueDate||'';
   document.getElementById('rs-date').min=new Date().toISOString().split('T')[0];
-  nav(4);
+  openSheet('rsSh');
 }
-
 function shiftDays(days){
-  const el=document.getElementById('rs-date');if(!el)return;
+  const el=document.getElementById('rs-date');
   const base=el.value?new Date(el.value):new Date();
   base.setDate(base.getDate()+days);
   el.value=base.toISOString().split('T')[0];
 }
-
 function saveReschedule(){
   const id=document.getElementById('rs-id').value;
   const c=state.contacts.find(x=>x.id===id);if(!c)return;
   const date=document.getElementById('rs-date').value;
   if(!date){alert('Please pick a date');return;}
-  c.dueDate=date;save();expandedId=null;nav(0);render();
+  c.dueDate=date;save();expandedId=null;closeSheet('rsSh');renderHome();if(curTab===3)renderContacts();
 }
 
-// ── BIRTHDAY HELPERS ──────────────────────────────────────────────────────
-// Returns days until next occurrence of a birthday (month/day), 0 = today, -1 = passed this year
-function bdayDaysUntil(dateStr){
-  const today=new Date(); today.setHours(0,0,0,0);
-  const raw=new Date(dateStr);
-  // Next occurrence this year
-  const thisYear=new Date(today.getFullYear(), raw.getMonth(), raw.getDate());
-  thisYear.setHours(0,0,0,0);
-  if(thisYear>=today) return Math.round((thisYear-today)/86400000);
-  // Already passed this year — next year
-  return -1; // treat as expired for current year; don't show
-}
-
-function nextBirthdayHtml(){
-  if(!state.birthdays||state.birthdays.length===0) return '';
-  const today=new Date(); today.setHours(0,0,0,0);
-
-  // Find the soonest upcoming birthday (not yet passed this year)
-  let best=null, bestDays=Infinity;
-  for(const b of state.birthdays){
-    const d=bdayDaysUntil(b.date);
-    if(d>=0 && d<bestDays){ bestDays=d; best=b; }
-  }
-  if(!best) return ''; // all passed this year
-
-  const label = bestDays===0 ? '🎉 Today!' : bestDays===1 ? 'Tomorrow' : `in ${bestDays}d`;
-  const raw=new Date(best.date);
-  const monthDay=raw.toLocaleDateString('en-US',{month:'short',day:'numeric'});
-
-  return `<div class="section-label" style="margin-top:2px">Upcoming Birthday</div>
-  <div class="bday-card" onclick="openEditBday('${best.id}')">
-    <div class="bday-inner">
-      <div class="bday-icon">🎂</div>
-      <div class="bday-info">
-        <div class="bday-name">${esc(best.name)}</div>
-        <div class="bday-date">${monthDay} · ${label}</div>
-      </div>
-    </div>
-  </div>`;
-}
-
-function openEditBday(id){
-  const b=state.birthdays.find(x=>x.id===id); if(!b)return;
-  document.getElementById('bi-id').value=id;
-  document.getElementById('bi-name').value=b.name||'';
-  document.getElementById('bi-date').value=b.date||'';
-  document.getElementById('bdayScreenTitle').textContent='Edit Birthday';
-  document.getElementById('bdaySaveBtn').textContent='Update Birthday';
-  document.getElementById('bdayDeleteBtn').style.display='block';
-  nav(5);
-}
-
+// ── BIRTHDAYS ─────────────────────────────────────────────────────────────
 function saveBirthday(){
-  const id=document.getElementById('bi-id').value;
   const name=document.getElementById('bi-name').value.trim();
   const date=document.getElementById('bi-date').value;
   if(!name){alert('Name is required');return;}
   if(!date){alert('Birthday date is required');return;}
-  if(id){
-    const b=state.birthdays.find(x=>x.id===id); if(b){b.name=name;b.date=date;}
-  }else{
-    state.birthdays.push({id:uid(),name,date});
-  }
-  save();nav(0);render();
+  state.birthdays.push({id:uid(),name,date});
+  save();renderHome();
+  document.getElementById('bi-name').value='';
+  document.getElementById('bi-date').value='';
+  const msg=document.getElementById('bdaySaved');
+  msg.style.display='block';setTimeout(()=>{msg.style.display='none';goTab(0);},1200);
 }
-
+function openBdEdit(id){
+  const b=state.birthdays.find(x=>x.id===id);if(!b)return;
+  document.getElementById('bei-id').value=id;
+  document.getElementById('bei-name').value=b.name||'';
+  document.getElementById('bei-date').value=b.date||'';
+  openSheet('bdEditSh');
+}
+function updateBirthday(){
+  const id=document.getElementById('bei-id').value;
+  const b=state.birthdays.find(x=>x.id===id);if(!b)return;
+  const name=document.getElementById('bei-name').value.trim();
+  const date=document.getElementById('bei-date').value;
+  if(!name||!date){alert('Name and date required');return;}
+  b.name=name;b.date=date;save();closeSheet('bdEditSh');renderHome();if(curTab===3)renderContacts();
+}
 function deleteBirthday(){
-  const id=document.getElementById('bi-id').value;
+  const id=document.getElementById('bei-id').value;
   if(!confirm('Remove this birthday?'))return;
   state.birthdays=state.birthdays.filter(x=>x.id!==id);
-  save();nav(0);render();
+  save();closeSheet('bdEditSh');renderHome();if(curTab===3)renderContacts();
 }
 
-// ── BACKUP & RESET ────────────────────────────────────────────────────────
+// ── BACKUP ────────────────────────────────────────────────────────────────
 function copyData(){
-  const lines=[];
-  lines.push(`=== Rolodex Backup — ${new Date().toLocaleDateString('en-US',{dateStyle:'long'})} ===`);
-  lines.push(`Profile: ${state.profileName||'(not set)'}`);
-  lines.push('');
-
-  lines.push(`── Contacts (${state.contacts.length}) ──`);
-  if(state.contacts.length===0){lines.push('  (none)');}
-  else{
-    for(const c of state.contacts){
-      lines.push(`  ${c.name}${c.phone?' · '+c.phone:''}${c.met?' · ✓ Met '+fmt(c.metDate):' · Meet by '+fmt(c.dueDate)}${c.linkedin?' · '+c.linkedin:''}`);
-    }
-  }
-  lines.push('');
-
-  lines.push(`── Birthdays (${state.birthdays.length}) ──`);
-  if(state.birthdays.length===0){lines.push('  (none)');}
-  else{
-    for(const b of state.birthdays){
-      const raw=new Date(b.date);
-      lines.push(`  ${b.name} · ${raw.toLocaleDateString('en-US',{month:'long',day:'numeric'})}`);
-    }
-  }
-
-  const text=lines.join('\n');
-  if(navigator.clipboard&&navigator.clipboard.writeText){
-    navigator.clipboard.writeText(text).then(()=>{showCopyConfirm();}).catch(()=>{fallbackCopy(text);});
-  } else { fallbackCopy(text); }
+  const L=[];
+  L.push(`=== Rolodex Backup — ${new Date().toLocaleDateString('en-US',{dateStyle:'long'})} ===`);
+  L.push(`Profile: ${state.profileName||'(not set)'}`);L.push('');
+  L.push(`── Contacts (${state.contacts.length}) ──`);
+  if(!state.contacts.length)L.push('  (none)');
+  else for(const c of state.contacts)L.push(`  ${c.name}${c.phone?' · '+c.phone:''}${c.met?' · ✓ Met '+fmt(c.metDate):' · Meet by '+fmt(c.dueDate)}${c.linkedin?' · '+c.linkedin:''}`);
+  L.push('');
+  L.push(`── Birthdays (${state.birthdays.length}) ──`);
+  if(!state.birthdays.length)L.push('  (none)');
+  else for(const b of state.birthdays){const r=new Date(b.date);L.push(`  ${b.name} · ${r.toLocaleDateString('en-US',{month:'long',day:'numeric'})}`);}
+  const text=L.join('\n');
+  if(navigator.clipboard?.writeText)navigator.clipboard.writeText(text).then(()=>showCopyOk()).catch(()=>fbCopy(text));
+  else fbCopy(text);
 }
-
-function fallbackCopy(text){
-  const ta=document.createElement('textarea');
-  ta.value=text; ta.style.position='absolute'; ta.style.left='-9999px';
-  document.body.appendChild(ta); ta.select(); document.execCommand('copy');
-  document.body.removeChild(ta); showCopyConfirm();
-}
-
-function showCopyConfirm(){
-  const el=document.getElementById('copyConfirm');
-  if(!el)return;
-  el.style.display='block';
-  setTimeout(()=>{ el.style.display='none'; },2500);
-}
+function fbCopy(text){const ta=document.createElement('textarea');ta.value=text;ta.style.position='absolute';ta.style.left='-9999px';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);showCopyOk();}
+function showCopyOk(){const e=document.getElementById('copyOk');if(!e)return;e.style.display='block';setTimeout(()=>e.style.display='none',2500);}
 
 function restoreData(){
   const raw=(document.getElementById('restoreInput').value||'').trim();
-  if(!raw){ showRestoreStatus('Please paste your backup text first.','var(--red)'); return; }
-
-  // Parse contacts from backup text
+  if(!raw){showRestOk('Please paste backup text first.','var(--red)');return;}
   const lines=raw.split('\n').map(l=>l.trim()).filter(Boolean);
-  const newContacts=[], newBirthdays=[];
-  let section='';
-
+  const nc=[],nb=[];let sec='';
   for(const line of lines){
-    if(line.startsWith('── Contacts')||line.includes('Contacts (')){section='contacts';continue;}
-    if(line.startsWith('── Birthdays')||line.includes('Birthdays (')){section='birthdays';continue;}
-    if(line.startsWith('===')){ section=''; continue; }
-    if(line.startsWith('Profile:')){ continue; }
-    if(line==='(none)') continue;
-
-    if(section==='contacts'&&line.startsWith('  ')){
-      const parts=line.trim().split(' · ');
-      if(parts.length<1)continue;
-      const name=parts[0];
-      const phone=parts.find(p=>/^\+?[\d\s\-()]{6,}$/.test(p))||'';
-      const metPart=parts.find(p=>p.startsWith('✓ Met '));
-      const duePart=parts.find(p=>p.startsWith('Meet by '));
-      const li=parts.find(p=>p.startsWith('http'))||'';
-      const metDate=metPart?parseBackupDate(metPart.replace('✓ Met ','')):null;
-      const dueDate=duePart?parseBackupDate(duePart.replace('Meet by ','')):new Date().toISOString().split('T')[0];
-      if(name) newContacts.push({id:uid(),name,phone,dueDate,linkedin:li,met:!!metDate,metDate,createdAt:Date.now()});
+    if(line.includes('Contacts (')){sec='c';continue;}
+    if(line.includes('Birthdays (')){sec='b';continue;}
+    if(line.startsWith('===')||line.startsWith('Profile:')||line==='(none)')continue;
+    if(sec==='c'){
+      const p=line.split(' · ');if(!p[0])continue;
+      const mP=p.find(x=>x.startsWith('✓ Met ')),dP=p.find(x=>x.startsWith('Meet by '));
+      const ph=p.find(x=>/^\+?[\d\s\-()]{6,}$/.test(x))||'';
+      const li=p.find(x=>x.startsWith('http'))||'';
+      const md=mP?bkDate(mP.replace('✓ Met ','')):null;
+      const dd=dP?bkDate(dP.replace('Meet by ','')):new Date().toISOString().split('T')[0];
+      if(p[0])nc.push({id:uid(),name:p[0],phone:ph,dueDate:dd,linkedin:li,met:!!md,metDate:md,createdAt:Date.now()});
     }
-
-    if(section==='birthdays'&&line.startsWith('  ')){
-      const parts=line.trim().split(' · ');
-      if(parts.length<2)continue;
-      const name=parts[0];
-      const dateStr=parseBackupBdayDate(parts[1]);
-      if(name&&dateStr) newBirthdays.push({id:uid(),name,date:dateStr});
+    if(sec==='b'){
+      const p=line.split(' · ');if(p.length<2)continue;
+      const ds=bkBday(p[1]);if(p[0]&&ds)nb.push({id:uid(),name:p[0],date:ds});
     }
   }
-
-  if(newContacts.length===0&&newBirthdays.length===0){
-    showRestoreStatus('Could not parse any data. Make sure you pasted a valid Rolodex backup.','var(--red)');
-    return;
-  }
-
-  if(!confirm(`Restore ${newContacts.length} contact(s) and ${newBirthdays.length} birthday(s)? This replaces your current data.`))return;
-  state.contacts=newContacts;
-  state.birthdays=newBirthdays.length>0?newBirthdays:[...DEFAULT_BIRTHDAYS];
-  save(); render();
-  document.getElementById('restoreInput').value='';
-  showRestoreStatus(`✓ Restored ${newContacts.length} contacts and ${newBirthdays.length} birthdays.`,'var(--teal)');
+  if(!nc.length&&!nb.length){showRestOk('Could not parse data. Check your backup text.','var(--red)');return;}
+  if(!confirm(`Restore ${nc.length} contact(s) and ${nb.length} birthday(s)? This replaces current data.`))return;
+  state.contacts=nc;state.birthdays=nb.length?nb:[...DEFAULT_BDAYS];
+  save();renderHome();document.getElementById('restoreInput').value='';
+  showRestOk(`✓ Restored ${nc.length} contacts & ${nb.length} birthdays.`,'var(--teal)');
 }
-
-function parseBackupDate(str){
-  // e.g. "Mar 7, 2025" → "2025-03-07"
-  try{
-    const d=new Date(str);
-    if(!isNaN(d)) return d.toISOString().split('T')[0];
-  }catch(e){}
-  return null;
-}
-
-function parseBackupBdayDate(str){
-  // e.g. "March 20" → "2000-03-20"
-  try{
-    const d=new Date(str+' 2000');
-    if(!isNaN(d)) return `2000-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-  }catch(e){}
-  return null;
-}
-
-function showRestoreStatus(msg,color){
-  const el=document.getElementById('restoreStatus');
-  if(!el)return;
-  el.textContent=msg; el.style.color=color; el.style.display='block';
-  setTimeout(()=>{ el.style.display='none'; },4000);
-}
+function bkDate(s){try{const d=new Date(s);if(!isNaN(d))return d.toISOString().split('T')[0];}catch(e){}return null;}
+function bkBday(s){try{const d=new Date(s+' 2000');if(!isNaN(d))return`2000-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}catch(e){}return null;}
+function showRestOk(msg,color){const e=document.getElementById('restoreOk');if(!e)return;e.textContent=msg;e.style.color=color;e.style.display='block';setTimeout(()=>e.style.display='none',4000);}
 
 function resetData(){
-  if(!confirm('This will delete ALL contacts and birthdays on this device. Are you sure?'))return;
-  if(!confirm('Last chance — this cannot be undone. Reset everything?'))return;
-  state={profileName:state.profileName,contacts:[],birthdays:[...DEFAULT_BIRTHDAYS]};
-  save();nav(0);render();
+  if(!confirm('Delete ALL contacts and birthdays?'))return;
+  if(!confirm('Last chance — cannot be undone.'))return;
+  state={profileName:state.profileName,contacts:[],birthdays:[...DEFAULT_BDAYS]};
+  save();renderHome();if(curTab===3)renderContacts();
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────────
-load();render();
+load();renderHome();checkBdayBanner();
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
 </body>
