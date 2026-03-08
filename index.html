@@ -83,11 +83,11 @@ body{font-family:'Plus Jakarta Sans',sans-serif;color:var(--text);}
   background:linear-gradient(90deg,var(--violet),var(--cyan));border-radius:0 0 3px 3px;}
 
 /* ── HOME PANE ── */
-.home-wrap{padding:12px 14px 16px;max-width:480px;margin:0 auto;}
+.home-wrap{padding:10px 14px 14px;max-width:480px;margin:0 auto;}
 
 /* Progress bars */
-.pb{margin-bottom:7px;}
-.pb-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
+.pb{margin-bottom:6px;}
+.pb-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;}
 .pb-lbl{display:flex;align-items:center;gap:5px;font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;}
 .pb-dot{width:6px;height:6px;border-radius:50%;}
 .met-bar .pb-lbl{color:var(--teal);}
@@ -104,48 +104,48 @@ body{font-family:'Plus Jakarta Sans',sans-serif;color:var(--text);}
 .miss-bar .pb-fill{background:linear-gradient(90deg,var(--red),var(--orange));}
 
 /* Stat cards row */
-.stats-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin:8px 0;}
-.stat-card{border-radius:14px;padding:10px 6px 8px;text-align:center;border:1px solid transparent;}
+.stats-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin:6px 0;}
+.stat-card{border-radius:12px;padding:8px 6px 7px;text-align:center;border:1px solid transparent;}
 .stat-card.pp{background:linear-gradient(150deg,rgba(255,95,160,.18),rgba(181,123,255,.07));border-color:rgba(255,95,160,.2);}
 .stat-card.mp{background:linear-gradient(150deg,rgba(170,255,92,.16),rgba(6,214,160,.07));border-color:rgba(170,255,92,.2);}
 .stat-card.pf{background:linear-gradient(150deg,rgba(0,212,255,.16),rgba(181,123,255,.07));border-color:rgba(0,212,255,.2);}
-.stat-val{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;line-height:1;margin-bottom:3px;}
+.stat-val{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;line-height:1;margin-bottom:2px;}
 .pp .stat-val{color:var(--pink);}
 .mp .stat-val{color:var(--lime);}
 .pf .stat-val{color:var(--cyan);}
-.stat-lbl{font-size:9px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;line-height:1.3;}
+.stat-lbl{font-size:9px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;line-height:1.2;}
 
 /* Section label */
 .slbl{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);
-  display:flex;align-items:center;gap:7px;margin:10px 0 7px;}
+  display:flex;align-items:center;gap:7px;margin:8px 0 5px;}
 .slbl::after{content:'';flex:1;height:1px;background:var(--border);}
 
 /* Next Up card */
-.nu-card{border-radius:16px;padding:11px 14px;margin-bottom:8px;position:relative;overflow:hidden;
+.nu-card{border-radius:14px;padding:9px 12px;margin-bottom:5px;position:relative;overflow:hidden;
   background:linear-gradient(140deg,#1e1c38,#28204a);border:1px solid rgba(181,123,255,.2);}
 .blob{position:absolute;border-radius:50%;pointer-events:none;}
 .b1{top:-35px;right:-35px;width:90px;height:90px;background:radial-gradient(circle,rgba(181,123,255,.22),transparent 70%);}
 .b2{bottom:-25px;left:-25px;width:75px;height:75px;background:radial-gradient(circle,rgba(0,212,255,.13),transparent 70%);}
 .nu-empty{color:var(--muted);font-size:12px;text-align:center;padding:3px 0;position:relative;}
 .nu-row{display:flex;align-items:center;gap:10px;position:relative;}
-.nu-av{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;
-  font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:#fff;flex-shrink:0;}
+.nu-av{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+  font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:#fff;flex-shrink:0;}
 .nu-info{flex:1;min-width:0;}
-.nu-name{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.nu-name{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .nu-due{font-size:10px;font-weight:600;color:var(--violet);}
 .nu-due.ov{color:var(--red);}
-.nu-acts{display:flex;gap:6px;flex-shrink:0;}
-.ic-btn{width:34px;height:34px;border-radius:10px;border:none;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;}
+.nu-acts{display:flex;gap:5px;flex-shrink:0;}
+.ic-btn{width:30px;height:30px;border-radius:9px;border:none;display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;}
 .ic-btn.tick{background:rgba(6,214,160,.15);color:var(--teal);}
 .ic-btn.cross{background:rgba(255,71,87,.12);color:var(--red);}
 
 /* Birthday card */
-.bd-card{border-radius:16px;padding:10px 14px;margin-bottom:6px;
+.bd-card{border-radius:14px;padding:8px 12px;margin-bottom:5px;
   background:linear-gradient(140deg,#1a1e2e,#22182e);border:1px solid rgba(255,209,102,.25);cursor:pointer;}
-.bd-row{display:flex;align-items:center;gap:10px;}
-.bd-icon{width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,var(--yellow),var(--orange));
-  display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
-.bd-name{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.bd-row{display:flex;align-items:center;gap:9px;}
+.bd-icon{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--yellow),var(--orange));
+  display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.bd-name{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .bd-date{font-size:10px;font-weight:600;color:var(--yellow);margin-top:1px;}
 
 /* ── FORM PANE (Meeting + Birthday tabs share same styling) ── */
@@ -315,7 +315,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;color:var(--text);}
           </div>
           <div class="pb-track"><div class="pb-fill" id="missFill"></div></div>
         </div>
-        <div class="slbl" style="margin-top:10px">Next Up</div>
+        <div class="slbl" style="margin-top:8px">Upcoming Meetings</div>
         <div id="nuCard"></div>
         <div id="bdCard"></div>
       </div>
@@ -633,22 +633,25 @@ function renderHome(){
     if(xf)xf.style.width=missPct+'%';
   },80));
 
-  // Next Up
+  // Next Up — show 2
   const active=state.contacts.filter(c=>!c.met).sort((a,b)=>new Date(a.dueDate)-new Date(b.dueDate));
   let nu='';
   if(active.length===0){
     nu=`<div class="nu-card"><div class="b1 blob"></div><div class="b2 blob"></div><div class="nu-empty">No upcoming meetings — use the Meeting tab to add one</div></div>`;
   }else{
-    const c=active[0],diff=daysDiff(c.dueDate);
-    const oc=diff<0?'ov':'';
-    const dl=diff<0?`⚠️ ${-diff}d overdue`:diff===0?'🔥 Due Today!':diff<=3?`⚡ ${fmt(c.dueDate)}`:`📅 ${fmt(c.dueDate)}`;
-    nu=`<div class="nu-card"><div class="b1 blob"></div><div class="b2 blob"></div><div class="nu-row">
-      <div class="nu-av" style="background:${colorFor(c.name)}">${initials(c.name)}</div>
-      <div class="nu-info"><div class="nu-name">${esc(c.name)}</div><div class="nu-due ${oc}">${dl}</div></div>
-      <div class="nu-acts">
-        <button class="ic-btn tick" onclick="markMet('${c.id}')">✓</button>
-        <button class="ic-btn cross" onclick="cancelMeeting('${c.id}')">✕</button>
-      </div></div></div>`;
+    const top=active.slice(0,2);
+    nu=top.map((c,i)=>{
+      const diff=daysDiff(c.dueDate);
+      const oc=diff<0?'ov':'';
+      const dl=diff<0?`⚠️ ${-diff}d overdue`:diff===0?'🔥 Due Today!':diff<=3?`⚡ ${fmt(c.dueDate)}`:`📅 ${fmt(c.dueDate)}`;
+      return`<div class="nu-card"${i>0?' style="margin-top:0"':''}><div class="b1 blob"></div><div class="b2 blob"></div><div class="nu-row">
+        <div class="nu-av" style="background:${colorFor(c.name)}">${initials(c.name)}</div>
+        <div class="nu-info"><div class="nu-name">${esc(c.name)}</div><div class="nu-due ${oc}">${dl}</div></div>
+        <div class="nu-acts">
+          <button class="ic-btn tick" onclick="markMet('${c.id}')">✓</button>
+          <button class="ic-btn cross" onclick="cancelMeeting('${c.id}')">✕</button>
+        </div></div></div>`;
+    }).join('');
   }
   document.getElementById('nuCard').innerHTML=nu;
 
@@ -667,19 +670,24 @@ function bdayDaysUntil(ds){
 }
 function nextBdayHtml(){
   if(!state.birthdays?.length)return'';
-  let best=null,bestD=Infinity;
-  for(const b of state.birthdays){const d=bdayDaysUntil(b.date);if(d>=0&&d<bestD){bestD=d;best=b;}}
-  if(!best)return'';
-  const lbl=bestD===0?'🎉 Today!':bestD===1?'Tomorrow':`in ${bestD}d`;
-  const raw=new Date(best.date);
-  const md=raw.toLocaleDateString('en-US',{month:'short',day:'numeric'});
-  return`<div class="slbl" style="margin-top:4px">Upcoming Birthday</div>
-    <div class="bd-card" onclick="openBdEdit('${best.id}')">
+  // Sort all with a daysUntil, pick top 2 upcoming
+  const sorted=state.birthdays
+    .map(b=>({...b,d:bdayDaysUntil(b.date)}))
+    .filter(b=>b.d>=0)
+    .sort((a,b)=>a.d-b.d)
+    .slice(0,2);
+  if(!sorted.length)return'';
+  const cards=sorted.map(b=>{
+    const lbl=b.d===0?'🎉 Today!':b.d===1?'Tomorrow':`in ${b.d}d`;
+    const raw=new Date(b.date);
+    const md=raw.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    return`<div class="bd-card" onclick="openBdEdit('${b.id}')">
       <div class="bd-row">
         <div class="bd-icon">🎂</div>
-        <div><div class="bd-name">${esc(best.name)}</div><div class="bd-date">${md} · ${lbl}</div></div>
-      </div>
-    </div>`;
+        <div><div class="bd-name">${esc(b.name)}</div><div class="bd-date">${md} · ${lbl}</div></div>
+      </div></div>`;
+  }).join('');
+  return`<div class="slbl" style="margin-top:6px">Upcoming Birthdays</div>${cards}`;
 }
 
 // ── BIRTHDAY BANNER ───────────────────────────────────────────────────────
