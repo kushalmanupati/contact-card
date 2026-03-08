@@ -704,7 +704,7 @@ function computeStats(){
     const diff=due-today;
     if(diff>=-ms30&&diff<=0)p30++;
     if(diff>0&&diff<=ms60)n60++;
-    if(c.met){tMet++;const md=new Date(c.metDate);md.setHours(0,0,0,0);if(today-md>=0&&today-md<=ms30)m30++;}
+    if(c.met){tMet++;const md=new Date(c.dueDate||c.metDate);md.setHours(0,0,0,0);if(today-md>=0&&today-md<=ms30)m30++;}
     else if(diff<0)tMiss++;
   }
   return{p30,m30,n60,tMet,tMiss,tot};
@@ -813,9 +813,12 @@ function lastMetHtml(){
   }
 
   for(const c of metContacts){
-    const md=new Date(c.metDate);md.setHours(0,0,0,0);
+    // Use dueDate (the intended meeting date) not metDate (when ✓ was tapped)
+    const dateToUse=c.dueDate||c.metDate;
+    const md=new Date(dateToUse);md.setHours(0,0,0,0);
     const days=Math.round((today-md)/86400000);
-    for(const b of BUCKETS){if(days<=b.max){b.people.push({...c,daysAgo:days});break;}}
+    const daysAgo=Math.max(0,days); // negative means future-dated, treat as 0
+    for(const b of BUCKETS){if(daysAgo<=b.max){b.people.push({...c,daysAgo});break;}}
   }
 
   const maxCount=Math.max(...BUCKETS.map(b=>b.people.length),1);
