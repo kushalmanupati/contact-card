@@ -67,6 +67,8 @@ body{font-family:'Plus Jakarta Sans',sans-serif;color:var(--text);}
   overflow-y:hidden;
   display:none;
   flex-direction:column;
+  /* position:absolute;inset:0 from .tab-pane gives explicit height */
+  height:100%;
 }
 #pane0.active{display:flex;}
 
@@ -80,10 +82,10 @@ body{font-family:'Plus Jakarta Sans',sans-serif;color:var(--text);}
 }
 .tab-btn{
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:2px;padding:8px 4px 6px;
+  gap:2px;padding:10px 4px 8px;
   border:none;background:transparent;cursor:pointer;position:relative;
 }
-.tab-btn .ti{font-size:20px;line-height:1;transition:transform .15s;}
+.tab-btn .ti{font-size:22px;line-height:1;transition:transform .15s;}
 .tab-btn .tl{font-size:10px;font-weight:700;color:var(--muted);transition:color .15s;letter-spacing:.2px;}
 .tab-btn.on .tl{color:var(--violet);}
 .tab-btn.on .ti{transform:scale(1.18);}
@@ -92,26 +94,33 @@ body{font-family:'Plus Jakarta Sans',sans-serif;color:var(--text);}
 
 /* ── HOME PANE ── */
 .home-wrap{
-  padding:8px 14px 6px;
-  max-width:480px;width:100%;margin:0 auto;
-  flex:1;display:flex;flex-direction:column;
-  min-height:0;
+  padding:10px 14px 10px;
+  max-width:480px;width:100%;
+  margin:0 auto;
+  height:100%;
+  display:flex;flex-direction:column;
+  box-sizing:border-box;
 }
 .home-top{ flex-shrink:0; }
-/* Body = all remaining space, split evenly into 3 rows */
+/* Body = all remaining space, split into 3 even rows */
 .home-body{
   flex:1;min-height:0;
   display:flex;flex-direction:column;
-  gap:0;
 }
 .home-col{
   flex:1;min-height:0;
   display:flex;flex-direction:column;
 }
+/* meetings col: slightly more space since it has 2 cards with buttons */
+.meetings-col{ flex:1.1; }
+.birthdays-col{ flex:1; }
+.lastmet-col{ flex:1.2;min-height:0;display:flex;flex-direction:column; }
+#lastMetSection{ flex:1;min-height:0;display:flex;flex-direction:column; }
+
 .home-col-cards{
   flex:1;min-height:0;
   display:flex;flex-direction:column;
-  gap:5px;
+  gap:6px;
 }
 /* each card in the meetings/birthday cols stretches equally */
 .home-col-cards .nu-card,
@@ -122,9 +131,6 @@ body{font-family:'Plus Jakarta Sans',sans-serif;color:var(--text);}
 }
 .home-col-cards .nu-card .nu-row,
 .home-col-cards .bd-card .bd-row{ width:100%; }
-/* last met col contains the section label + card, card must grow */
-.lastmet-col{ flex:1;min-height:0;display:flex;flex-direction:column; }
-#lastMetSection{ flex:1;min-height:0;display:flex;flex-direction:column; }
 
 /* Progress bars */
 .pb{margin-bottom:6px;}
@@ -158,7 +164,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;color:var(--text);}
 
 /* Section label */
 .slbl{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);
-  display:flex;align-items:center;gap:7px;margin:8px 0 5px;}
+  display:flex;align-items:center;gap:7px;margin:6px 0 5px;flex-shrink:0;}
 .slbl::after{content:'';flex:1;height:1px;background:var(--border);}
 
 /* Next Up card */
